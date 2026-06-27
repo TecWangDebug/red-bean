@@ -7,12 +7,17 @@
 <meta name="theme-color" content="#06060f">
 <title>红豆 · 生日快乐</title>
 <style>
+  /* 内嵌书法字体（子集化 + base64，零外部请求） */
+  @font-face{
+    font-family:"HD";
+    src:url(data:font/woff2;base64,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) format("woff2");
+    font-display:swap;
+  }
   :root{
     --ink:#06060f;
     --gold-hi:#fff4c8;
     --gold:#f6d27a;
     --gold-deep:#c98a2e;
-    --rose:#ff9fae;
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html,body{
@@ -23,19 +28,13 @@
     -webkit-tap-highlight-color:transparent;
     touch-action:none;
   }
-  body{
-    background:
-      radial-gradient(140% 100% at 50% 8%, #14121f 0%, #0a0a16 46%, #050509 100%);
-  }
+  body{ background:radial-gradient(140% 100% at 50% 8%, #14121f 0%, #0a0a16 46%, #050509 100%); }
   #sky{ position:fixed; inset:0; display:block; width:100vw; height:100vh; z-index:1; }
 
-  /* 细微颗粒，增加夜空质感（内联 SVG，无外链） */
   .grain{
-    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.05;
-    mix-blend-mode:overlay;
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.045; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  /* 顶/底暗角 */
   .vignette{
     position:fixed; inset:0; z-index:2; pointer-events:none;
     background:radial-gradient(120% 80% at 50% 42%, transparent 56%, rgba(2,2,8,.55) 100%);
@@ -45,59 +44,48 @@
     position:fixed; inset:0; z-index:3;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; pointer-events:none;
-    padding:0 28px;
-    padding-top:env(safe-area-inset-top);
-    padding-bottom:env(safe-area-inset-bottom);
+    padding:0 28px; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   }
 
-  /* 入场动画基础 */
   .rise{ opacity:0; transform:translateY(18px); filter:blur(6px);
          animation:rise 1.5s cubic-bezier(.2,.7,.2,1) forwards; }
   @keyframes rise{ to{ opacity:1; transform:none; filter:blur(0); } }
 
   .eyebrow{
     font-family:"Snell Roundhand","Apple Chancery","Savoye LET","Brush Script MT",cursive;
-    font-size:clamp(30px,9.5vw,52px);
-    font-weight:600; font-style:italic;
-    letter-spacing:.5px;
+    font-size:clamp(30px,9.5vw,52px); font-weight:600; font-style:italic; letter-spacing:.5px;
     background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-deep));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    -webkit-text-fill-color:transparent;
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
     filter:drop-shadow(0 3px 16px rgba(246,200,110,.4));
     animation-delay:.25s;
   }
 
   .name{
-    margin-top:.06em;
-    font-family:"Kaiti SC","STKaiti","KaiTi","Kaiti","楷体","PingFang SC",serif;
-    font-size:clamp(96px,32vw,176px);
-    line-height:1;
-    letter-spacing:.14em; text-indent:.14em;
+    margin-top:.04em;
+    font-family:"HD","Kaiti SC","STKaiti",serif;
+    font-size:clamp(108px,35vw,196px); line-height:1;
+    letter-spacing:.1em; text-indent:.1em;
     background:linear-gradient(175deg,#fff7da 0%,var(--gold) 38%,#e6b552 62%,var(--gold-deep) 100%);
     background-size:100% 240%;
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    -webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 0 26px rgba(246,180,80,.42)) drop-shadow(0 4px 10px rgba(0,0,0,.5));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+    filter:drop-shadow(0 0 30px rgba(246,180,80,.45)) drop-shadow(0 4px 12px rgba(0,0,0,.55));
     animation:rise 1.7s cubic-bezier(.2,.7,.2,1) forwards, shimmer 6s ease-in-out 1.6s infinite;
     animation-delay:.5s;
   }
   @keyframes shimmer{ 0%,100%{ background-position:50% 0%; } 50%{ background-position:50% 100%; } }
 
   .greet{
-    margin-top:.32em;
-    font-family:"Kaiti SC","STKaiti","KaiTi","Kaiti","楷体","PingFang SC",serif;
-    font-size:clamp(30px,9vw,46px); font-weight:600;
-    letter-spacing:.42em; text-indent:.42em;
-    color:#fbe9bf;
-    text-shadow:0 0 18px rgba(246,190,110,.4);
+    margin-top:.34em;
+    font-family:"HD","Kaiti SC","STKaiti",serif;
+    font-size:clamp(34px,10vw,52px);
+    letter-spacing:.3em; text-indent:.3em;
+    color:#fbe9bf; text-shadow:0 0 18px rgba(246,190,110,.45);
     animation-delay:.8s;
   }
 
   .rule{
-    display:flex; align-items:center; gap:14px;
-    margin:1.5em 0 1.15em;
-    color:var(--gold); opacity:.85;
-    animation-delay:1.05s;
+    display:flex; align-items:center; gap:14px; margin:1.45em 0 1.1em;
+    color:var(--gold); opacity:.85; animation-delay:1.05s;
   }
   .rule i{ display:block; width:clamp(40px,16vw,84px); height:1px;
            background:linear-gradient(90deg,transparent,rgba(246,210,122,.85)); }
@@ -106,11 +94,10 @@
            filter:drop-shadow(0 0 8px rgba(246,200,110,.7)); }
 
   .poem{
-    font-family:"Kaiti SC","STKaiti","KaiTi","Kaiti","楷体","PingFang SC",serif;
-    font-size:clamp(17px,5vw,23px);
-    letter-spacing:.28em; text-indent:.28em;
-    color:rgba(248,224,176,.86);
-    text-shadow:0 1px 10px rgba(0,0,0,.5);
+    font-family:"HD","Kaiti SC","STKaiti",serif;
+    font-size:clamp(19px,5.6vw,26px);
+    letter-spacing:.2em; text-indent:.2em;
+    color:rgba(248,224,176,.9); text-shadow:0 1px 10px rgba(0,0,0,.5);
     animation-delay:1.15s;
   }
   .bless{
@@ -118,18 +105,15 @@
     font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
     font-size:clamp(12.5px,3.7vw,15px); font-weight:300;
     letter-spacing:.16em; text-indent:.16em;
-    color:rgba(255,221,210,.62);
-    line-height:1.9;
+    color:rgba(255,221,210,.62); line-height:1.9;
     animation-delay:1.4s;
   }
 
   .hint{
-    position:fixed; left:0; right:0; z-index:3;
-    bottom:calc(env(safe-area-inset-bottom) + 24px);
+    position:fixed; left:0; right:0; z-index:3; bottom:calc(env(safe-area-inset-bottom) + 24px);
     text-align:center; pointer-events:none;
     font-family:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
-    font-size:12.5px; letter-spacing:.32em; text-indent:.32em;
-    color:rgba(255,205,200,.5);
+    font-size:12.5px; letter-spacing:.32em; text-indent:.32em; color:rgba(255,205,200,.5);
     opacity:0; animation:hintIn 1.2s ease 2.1s forwards, breathe 3.6s ease-in-out 3.3s infinite;
   }
   @keyframes hintIn{ to{ opacity:.6; } }
@@ -157,272 +141,191 @@
   const ctx = cv.getContext('2d');
   const TAU = Math.PI * 2;
   const rnd = (a = 1, b = 0) => b + Math.random() * (a - b);
-  const pick = arr => arr[(Math.random() * arr.length) | 0];
 
-  let W = 0, H = 0, DPR = 1;
-  let stars = [];
-  let fadeGrad = null;
+  let W = 0, H = 0, DPR = 1, fadeGrad = null, stars = [];
 
   function resize(){
     DPR = Math.min(2, window.devicePixelRatio || 1);
     W = window.innerWidth; H = window.innerHeight;
-    cv.width  = Math.floor(W * DPR);
-    cv.height = Math.floor(H * DPR);
+    cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
-    // 夜空渐隐用的竖向渐变（顶部冷、底部暖），同时承担拖尾衰减
+    // 拖尾衰减层：alpha 越小，烟花拖尾/流光越长（iMessage 感）
     fadeGrad = ctx.createLinearGradient(0, 0, 0, H);
-    fadeGrad.addColorStop(0,   'rgba(6,7,20,0.22)');
-    fadeGrad.addColorStop(0.6, 'rgba(8,7,16,0.22)');
-    fadeGrad.addColorStop(1,   'rgba(18,8,14,0.24)');
-
-    // 背景星点
+    fadeGrad.addColorStop(0,   'rgba(6,7,20,0.16)');
+    fadeGrad.addColorStop(0.6, 'rgba(8,7,16,0.16)');
+    fadeGrad.addColorStop(1,   'rgba(18,8,14,0.18)');
     const n = Math.round((W * H) / 9000);
     stars = Array.from({length: n}, () => ({
-      x: rnd(W), y: rnd(H * 0.92),
-      r: rnd(1.3, 0.3),
-      hue: rnd(1) < 0.7 ? rnd(50, 38) : rnd(210, 195), // 多数暖金，少数冷蓝
-      base: rnd(0.5, 0.12),
-      tw: rnd(0.9, 0.2),
-      ph: rnd(TAU)
+      x: rnd(W), y: rnd(H * 0.92), r: rnd(1.3, 0.3),
+      hue: rnd(1) < 0.7 ? rnd(50, 38) : rnd(210, 195),
+      base: rnd(0.5, 0.12), tw: rnd(0.9, 0.2), ph: rnd(TAU)
     }));
   }
 
-  // ====== 暖色为主的调色板（贴合“红豆”） ======
-  const PALETTES = [
-    [350, 8, 45],    // 玫红 → 暖红 → 金
-    [12, 40, 0],
-    [45, 30, 0],     // 鎏金
-    [330, 350, 20],  // 粉
-    [275, 200, 50],  // 紫 + 一点冷青点缀
-  ];
-  const warmHue = () => {
-    const set = pick(PALETTES);
-    return pick(set) + rnd(8, -8);
-  };
+  // 暖色为主、偶有亮彩点缀（贴合“红豆”，又有 iMessage 的缤纷）
+  function shellHue(){
+    if (Math.random() < 0.72){
+      return [350, 8, 16, 42, 332][(Math.random()*5)|0] + rnd(10,-10); // 玫红/朱红/橙金/粉
+    }
+    return [275, 200, 145, 218][(Math.random()*4)|0] + rnd(12,-12);     // 紫/青/翠/蓝
+  }
 
-  // ====== 粒子与火箭 ======
-  let particles = [];
-  let rockets   = [];
+  let particles = [], rockets = [], flashes = [];
   const MAX = 1500;
-
-  function spawn(p){ if (particles.length < MAX) particles.push(p); }
+  const spawn = p => { if (particles.length < MAX) particles.push(p); };
 
   class Rocket{
     constructor(tx, ty){
-      this.x  = rnd(W * 0.72, W * 0.28);
-      this.y  = H + 8;
-      this.tx = (tx != null) ? tx : rnd(W * 0.85, W * 0.15);
-      this.ty = (ty != null) ? ty : rnd(H * 0.5, H * 0.16);
-      const frames = rnd(64, 50);
-      this.vx = (this.tx - this.x) / frames;
-      this.vy = (this.ty - this.y) / frames;
-      this.life = frames;
-      this.hue = warmHue();
-      this.wob = rnd(TAU);
+      this.x = rnd(W*0.72, W*0.28); this.y = H + 8;
+      this.tx = tx != null ? tx : rnd(W*0.82, W*0.18);
+      this.ty = ty != null ? ty : rnd(H*0.46, H*0.16);
+      const f = rnd(62, 48);
+      this.vx = (this.tx - this.x) / f; this.vy = (this.ty - this.y) / f;
+      this.life = f; this.hue = shellHue(); this.wob = rnd(TAU);
     }
     step(){
       this.wob += 0.3;
-      this.x += this.vx + Math.cos(this.wob) * 0.4;
-      this.y += this.vy;
-      // 升空火尾
-      spawn({ x:this.x, y:this.y, vx:rnd(.3,-.3), vy:rnd(.6,.1),
-              hue:45, sat:90, light:72, life:0, max:18,
-              size:rnd(1.6,.8), fr:.92, g:0, core:.5, twk:false, type:'trail' });
-      if (--this.life <= 0){ explode(this.x, this.y, this.hue); return false; }
+      const px = this.x, py = this.y;
+      this.x += this.vx + Math.cos(this.wob) * 0.4; this.y += this.vy;
+      spawn({ x:this.x, y:this.y, px, py, vx:rnd(.2,-.2), vy:rnd(.5,.1),
+              hue:44, sat:90, light:78, life:0, max:16, w:1.6, fr:.9, g:0, twk:false, head:true });
+      if (--this.life <= 0){ burst(this.x, this.y, this.hue); return false; }
       return true;
     }
     draw(){
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, 2.1, 0, TAU);
-      ctx.fillStyle = `hsla(${this.hue},90%,80%,0.95)`;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, TAU);
+      ctx.fillStyle = `hsla(${this.hue},90%,82%,.95)`; ctx.fill();
     }
   }
 
-  function addParticle(x, y, ang, speed, hue, opt){
-    spawn(Object.assign({
-      x, y,
-      vx: Math.cos(ang) * speed,
-      vy: Math.sin(ang) * speed,
-      hue: hue + rnd(10, -10),
-      sat: rnd(100, 88),
-      light: rnd(72, 58),
-      life: 0, max: 0,
-      size: rnd(2.2, 1.2),
-      fr: .965, g: .045, core: rnd(1, .55),
-      twk: Math.random() < .5, type:'spark'
-    }, opt));
-  }
+  function flash(x, y, hue, maxr){ flashes.push({ x, y, hue, r:4, mr:maxr, a:1 }); }
 
-  function explode(x, y, hue){
+  // ====== iMessage 风格爆裂：白热爆心 + 密集细金粉 + 流光拖尾 + 重力下坠 ======
+  function burst(x, y, hue){
     const roll = Math.random();
-    let type = 'peony';
-    if (roll > .9)       type = 'heart';     // 爱心彩蛋
-    else if (roll > .74) type = 'willow';
-    else if (roll > .58) type = 'ring';
-    else if (roll > .42) type = 'chrys';
+    if (roll < 0.08){ heartBurst(x, y); return; }          // 爱心彩蛋
+    const willow = roll < 0.24;                              // 金柳下垂
 
-    flash(x, y, hue);
+    flash(x, y, hue, rnd(150, 110));
 
-    if (type === 'heart'){
-      const hueH = pick([348, 352, 335]);
-      const N = 84;
-      for (let i = 0; i < N; i++){
-        const t = (i / N) * TAU;
-        const hx = 16 * Math.pow(Math.sin(t), 3);
-        const hy = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
-        const k = rnd(.235, .205);
-        spawn({ x, y, vx: hx*k, vy: -hy*k, hue: hueH + rnd(6,-6),
-                sat:96, light: rnd(70,60), life:0, max: rnd(118,98),
-                size: rnd(2.3,1.5), fr:.97, g:.03, core:.8, twk:Math.random()<.4, type:'spark' });
-      }
-      return;
-    }
-
-    if (type === 'willow'){
-      const N = 70;
-      for (let i = 0; i < N; i++){
-        const a = (i / N) * TAU + rnd(.1,-.1);
-        const s = rnd(4.4, 1.6);
-        addParticle(x, y, a, s, 45, { max: rnd(150,120), fr:.974, g:.085,
-                    sat: rnd(90,78), light: rnd(74,62), size: rnd(2,1.2) });
-      }
-      return;
-    }
-
-    if (type === 'ring'){
-      const N = 64, s = rnd(4.6, 3.8);
-      for (let i = 0; i < N; i++){
-        const a = (i / N) * TAU;
-        addParticle(x, y, a, s + rnd(.4,-.4), hue,
-                    { max: rnd(95,78), size: rnd(2,1.3), light: rnd(78,64) });
-      }
-      // 内层小花
-      for (let i = 0; i < 26; i++)
-        addParticle(x, y, rnd(TAU), rnd(2,.4), hue, { max: rnd(70,52) });
-      return;
-    }
-
-    if (type === 'chrys'){
-      const N = 120;
-      for (let i = 0; i < N; i++)
-        addParticle(x, y, rnd(TAU), rnd(5.2, .6), hue,
-                    { max: rnd(108,80), fr:.96, g:.05 });
-      return;
-    }
-
-    // peony 默认牡丹
-    const N = 100;
+    const N = 150 + (Math.random()*80|0);
+    const power = willow ? rnd(6.5,4.5) : rnd(10.5,7.5);
     for (let i = 0; i < N; i++){
-      const a = rnd(TAU), s = rnd(5, .5);
-      addParticle(x, y, a, s, hue, { max: rnd(100,72) });
+      const ang = rnd(TAU);
+      const sp  = Math.sqrt(Math.random()) * power + rnd(.5);   // 开方→实心球形密度
+      spawn({
+        x, y, px:x, py:y,
+        vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp,
+        hue: (willow ? 44 : hue) + rnd(16,-16),
+        sat: willow ? rnd(92,80) : rnd(100,86),
+        light: rnd(72,58),
+        life:0, max: willow ? rnd(180,140) : rnd(150,95),
+        w: rnd(2.4,1.3),
+        fr: 0.9, g: willow ? rnd(.09,.06) : rnd(.06,.035),
+        twk: Math.random() < 0.55, head: true
+      });
     }
-    // 几粒亮“闪烁”碎金
-    for (let i = 0; i < 16; i++)
-      addParticle(x, y, rnd(TAU), rnd(3,.4), 48, { sat:80, light:84, twk:true, max:rnd(120,80) });
+    // 闪烁碎金（crackle / glitter）
+    const G = 40 + (Math.random()*24|0);
+    for (let i = 0; i < G; i++){
+      const ang = rnd(TAU), sp = Math.sqrt(Math.random()) * power * 0.7;
+      spawn({ x, y, px:x, py:y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp,
+              hue: 46 + rnd(10,-10), sat:70, light:90, life:0, max:rnd(180,120),
+              w:1.2, fr:.92, g:.02, twk:true, head:false });
+    }
   }
 
-  // 爆心瞬间的光晕
-  let flashes = [];
-  function flash(x, y, hue){ flashes.push({ x, y, hue, a: .9, r: 6 }); }
+  function heartBurst(x, y){
+    flash(x, y, 348, 120);
+    const hueH = [348, 352, 335][(Math.random()*3)|0];
+    const N = 110;
+    for (let i = 0; i < N; i++){
+      const t = (i / N) * TAU;
+      const hx = 16 * Math.pow(Math.sin(t), 3);
+      const hy = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+      const k = rnd(.3, .26);
+      spawn({ x, y, px:x, py:y, vx: hx*k, vy: -hy*k,
+              hue: hueH + rnd(8,-8), sat:96, light:rnd(72,62),
+              life:0, max: rnd(150,120), w: rnd(2.4,1.4),
+              fr:.92, g:.03, twk:Math.random()<.4, head:true });
+    }
+  }
 
   // ====== 主循环 ======
   let autoTimer = 0;
   function tick(){
-    // 夜空 + 拖尾衰减
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = fadeGrad;
-    ctx.fillRect(0, 0, W, H);
-
+    ctx.fillStyle = fadeGrad; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
 
-    // 星空
     const time = performance.now() * 0.001;
     for (const s of stars){
-      const a = s.base + Math.sin(time * s.tw + s.ph) * s.base * 0.8;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, TAU);
-      ctx.fillStyle = `hsla(${s.hue},70%,86%,${Math.max(0,a)})`;
-      ctx.fill();
+      const a = s.base + Math.sin(time*s.tw + s.ph) * s.base * 0.8;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU);
+      ctx.fillStyle = `hsla(${s.hue},70%,86%,${Math.max(0,a)})`; ctx.fill();
     }
 
-    // 底部暖辉（烟花余光）
+    // 底部暖辉
     const hg = ctx.createRadialGradient(W/2, H+40, 10, W/2, H+40, H*0.6);
-    hg.addColorStop(0, 'rgba(120,40,30,0.10)');
-    hg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(0, H*0.55, W, H*0.45);
+    hg.addColorStop(0, 'rgba(120,40,30,0.10)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg; ctx.fillRect(0, H*0.55, W, H*0.45);
 
-    // 爆心光晕
+    // 白热爆心闪光
     for (let i = flashes.length - 1; i >= 0; i--){
       const f = flashes[i];
       const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
-      g.addColorStop(0, `hsla(${f.hue},90%,80%,${f.a})`);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(f.x - f.r, f.y - f.r, f.r*2, f.r*2);
-      f.r += 7; f.a *= 0.84;
-      if (f.a < 0.02) flashes.splice(i, 1);
+      g.addColorStop(0,    `hsla(${f.hue},80%,98%,${f.a})`);
+      g.addColorStop(0.25, `hsla(${f.hue},92%,76%,${f.a*0.65})`);
+      g.addColorStop(1,    'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(f.x-f.r, f.y-f.r, f.r*2, f.r*2);
+      f.r += (f.mr - f.r) * 0.28; f.a *= 0.82;
+      if (f.a < 0.03) flashes.splice(i, 1);
     }
 
-    // 火箭
-    rockets = rockets.filter(r => { const alive = r.step(); if (alive) r.draw(); return alive; });
+    rockets = rockets.filter(r => { const a = r.step(); if (a) r.draw(); return a; });
 
-    // 粒子
+    // 粒子（流光拖尾）
+    ctx.lineCap = 'round';
     for (let i = particles.length - 1; i >= 0; i--){
       const p = particles[i];
+      p.px = p.x; p.py = p.y;
       p.vx *= p.fr; p.vy *= p.fr; p.vy += p.g;
-      p.x += p.vx; p.y += p.vy;
-      p.life++;
-      const lifeK = 1 - p.life / p.max;
-      if (lifeK <= 0){ particles.splice(i, 1); continue; }
+      p.x += p.vx; p.y += p.vy; p.life++;
+      const k = 1 - p.life / p.max;
+      if (k <= 0){ particles.splice(i, 1); continue; }
 
-      let a = lifeK;
-      if (p.twk && lifeK < 0.55) a *= (Math.random() < 0.5 ? 0.25 : 1); // 末端闪烁
+      let a = k * k;                                  // 末段更快变暗，干净
+      if (p.twk && k < 0.7) a *= (Math.random() < 0.6 ? 1 : 0.28);  // 闪烁
 
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.4 + lifeK * 0.6), 0, TAU);
-      ctx.fillStyle = `hsla(${p.hue},${p.sat}%,${p.light}%,${a})`;
-      ctx.fill();
+      ctx.strokeStyle = `hsla(${p.hue},${p.sat}%,${p.light}%,${a})`;
+      ctx.lineWidth = p.w * (0.35 + 0.65 * k);
+      ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
 
-      // 高光核心
-      if (p.core && lifeK > 0.3){
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 0.5, 0, TAU);
-        ctx.fillStyle = `hsla(${p.hue},60%,95%,${a * p.core})`;
-        ctx.fill();
+      if (p.head && k > 0.5){                         // 白热头
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.w * 0.7, 0, TAU);
+        ctx.fillStyle = `hsla(${p.hue},85%,96%,${a})`; ctx.fill();
       }
     }
 
-    // 自动放烟花
     if (--autoTimer <= 0){
-      const barrage = Math.random() < 0.3 ? 2 + (Math.random()*2|0) : 1;
-      for (let b = 0; b < barrage; b++)
-        setTimeout(() => rockets.push(new Rocket()), b * 260);
-      autoTimer = (rnd(95, 60)) | 0;
+      const barrage = Math.random() < 0.28 ? 2 + (Math.random()*2|0) : 1;
+      for (let b = 0; b < barrage; b++) setTimeout(() => rockets.push(new Rocket()), b * 240);
+      autoTimer = (rnd(105, 70)) | 0;
     }
-
     requestAnimationFrame(tick);
   }
 
-  // ====== 交互：轻触放烟花 ======
-  function launchAt(cx, cy){
-    // 触点偏上则直接在触点炸开，偏下则发射一支火箭飞过去
-    if (cy < H * 0.62) rockets.push(new Rocket(cx, cy));
-    else explode(cx, cy - 4, warmHue());
-  }
-  cv.addEventListener('pointerdown', e => launchAt(e.clientX, e.clientY), { passive:true });
+  // 轻触：上半屏发射飞过去爆开，下半屏就地绽放
+  cv.addEventListener('pointerdown', e => {
+    const x = e.clientX, y = e.clientY;
+    if (y < H * 0.6) rockets.push(new Rocket(x, y));
+    else burst(x, y - 4, shellHue());
+  }, { passive:true });
 
-  // ====== 启动 ======
   resize();
   window.addEventListener('resize', resize);
-
-  // 开场齐放，呼应文字浮现
-  [400, 850, 1300, 1750, 2300].forEach(t =>
-    setTimeout(() => rockets.push(new Rocket(
-      rnd(W*0.7, W*0.3), rnd(H*0.42, H*0.2))), t));
-
+  [380, 760, 1180, 1620, 2200].forEach(t =>
+    setTimeout(() => rockets.push(new Rocket(rnd(W*0.72,W*0.28), rnd(H*0.4,H*0.18))), t));
   requestAnimationFrame(tick);
 })();
 </script>
