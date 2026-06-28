@@ -143,6 +143,29 @@
     opacity:0; transform:translateY(8px); transition:all .35s ease;
   }
   .toast.show{ opacity:1; transform:translateY(0); }
+
+  /* —— 庆祝时压暗文字层，让烟花造型成为主角（修复"被字遮挡"）—— */
+  .stage,.textglow,.vignette{ transition:opacity .55s ease; }
+  body.party .stage{ opacity:.2; }
+  body.party .textglow{ opacity:.35; }
+  body.party .vignette{ opacity:.28; }
+
+  /* —— 等级 + 经验条 —— */
+  .score{ position:relative; overflow:hidden; display:inline-flex; gap:8px; align-items:center;
+          transition:box-shadow .3s ease, border-color .3s ease; }
+  .score .lvtag{ color:#ffe6a8; font-weight:700; letter-spacing:.5px; }
+  .xpfill{ position:absolute; left:0; bottom:0; height:3px; width:0%;
+           background:linear-gradient(90deg,#f6d27a,#ffb347);
+           box-shadow:0 0 8px rgba(246,200,110,.85); transition:width .28s ease; }
+  .score.lvflash{ border-color:#ffd86b !important; box-shadow:0 0 22px rgba(255,210,120,.9); }
+
+  /* —— 狂欢「无敌星」模式：暖色脉冲罩 —— */
+  .frenzyveil{ position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0;
+    background:radial-gradient(120% 92% at 50% 50%, rgba(255,120,60,.14), rgba(255,40,120,.07) 52%, transparent 76%);
+    transition:opacity .4s ease; }
+  body.frenzy .frenzyveil{ opacity:1; animation:frenzyPulse 1.1s ease-in-out infinite; }
+  @keyframes frenzyPulse{ 0%,100%{ filter:hue-rotate(0deg); opacity:.7;} 50%{ filter:hue-rotate(45deg); opacity:1;} }
+  body.frenzy .score{ border-color:rgba(255,180,80,.85); box-shadow:0 0 20px rgba(255,150,60,.65); }
 </style>
 </head>
 <body>
@@ -150,6 +173,7 @@
 <div class="grain"></div>
 <div class="vignette"></div>
 <div class="textglow"></div>
+<div class="frenzyveil"></div>
 
 <div class="stage">
   <div class="eyebrow rise">Happy Birthday</div>
@@ -160,7 +184,7 @@
   <div class="bless rise">愿你岁岁常欢愉，年年皆胜意<br>所求皆所愿，所行皆坦途</div>
 </div>
 <canvas id="fg" class="fg"></canvas>
-<div id="score" class="score">🎆 <b id="cFw">0</b>　❤ <b id="cHt">0</b></div>
+<div id="score" class="score"><span class="lvtag">Lv.<b id="cLv">1</b></span><span>🎆<b id="cFw">0</b></span><span>❤<b id="cHt">0</b></span><i id="xpfill" class="xpfill"></i></div>
 <div id="combo" class="combo"></div>
 <div id="toast" class="toast"></div>
 <div id="hint" class="hint">轻 触 夜 空 · 为 你 绽 放</div>
@@ -270,11 +294,16 @@
     }
   }
 
+  // 庆祝时压暗文字层 ~ms，让烟花造型清晰可见（修复被前景文字遮挡）
+  let partyTimer=null;
+  function party(ms){ document.body.classList.add('party');
+    clearTimeout(partyTimer); partyTimer=setTimeout(()=>document.body.classList.remove('party'), ms); }
+
   // 🎆 文字/表情 烟花：像素采样→火星汇聚成形（emoji 用真实颜色，文字用彩虹渐变）
+  // opt: {cyFrac, cx, cy, colored, scale, mini}  mini=小惊喜（不压暗文字、不放陪衬烟花）
   function glyphBurst(str, opt){
     opt=opt||{};
-    const cyFrac = opt.cyFrac!=null?opt.cyFrac:0.2;
-    const colored = !!opt.colored, scaleMul = opt.scale||1, fs=180;
+    const colored = !!opt.colored, scaleMul = opt.scale||1, mini=!!opt.mini, fs=180;
     const font = colored ? `${fs}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`
                          : `700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
     const oc=document.createElement('canvas'), o2=oc.getContext('2d');
@@ -292,9 +321,12 @@
     if (!pts.length) return;
     const MAXP=480; if (pts.length>MAXP){ const k=pts.length/MAXP,out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
     const targetW=Math.min(W*0.84,520)*scaleMul, sc=targetW/oc.width;
-    const ox=W/2-oc.width*sc/2, oy=H*cyFrac-oc.height*sc/2;
-    const cx=W/2, cy=H*cyFrac, br=v=>Math.min(255,Math.round(v*1.4+40));
-    flash(cx,cy,colored?45:330,180);
+    const cx = opt.cx!=null?opt.cx:W/2;
+    const cy = opt.cy!=null?opt.cy:H*(opt.cyFrac!=null?opt.cyFrac:0.2);
+    const ox=cx-oc.width*sc/2, oy=cy-oc.height*sc/2;
+    const br=v=>Math.min(255,Math.round(v*1.4+40));
+    if (!mini) party(2400);
+    flash(cx,cy,colored?45:330, mini?100:180);
     for (const [px,py,r,g,bl] of pts){
       const o={ text:true, x:cx+rnd(60,-60), y:cy+rnd(40,-40), tx:ox+px*sc, ty:oy+py*sc,
                 life:0, max:rnd(430,360), w:rnd(2.3,1.4), twk:Math.random()<.5 };
@@ -303,7 +335,7 @@
       spawn(o);
     }
     // 形状下方点缀两朵小烟花助兴（不盖住形状）
-    for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), H*cyFrac+rnd(170,110), shellHue()), 700+i*320);
+    if (!mini) for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), cy+rnd(170,110), shellHue()), 700+i*320);
   }
   function textBurst(str, cyFrac){ glyphBurst(str, {cyFrac:cyFrac}); }
 
@@ -422,57 +454,117 @@
     requestAnimationFrame(tick);
   }
 
-  // ====== 计数 / 连击 / 里程碑 ======
+  // ====== 计数 / 等级 / 连击 / 里程碑 ======
   const cFw=document.getElementById('cFw'), cHt=document.getElementById('cHt');
+  const cLv=document.getElementById('cLv'), xpfill=document.getElementById('xpfill');
+  const scoreEl=document.getElementById('score');
   const comboEl=document.getElementById('combo'), toastEl=document.getElementById('toast');
   let fw=0, ht=0, combo=0, lastFw=0, comboHideTimer=null, toastTimer=null;
+  let xp=0, level=1;
   function bump(el,val){ el.textContent=val; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
-  function showCombo(n){ comboEl.textContent='连击 ×'+n+' 🔥'; comboEl.classList.add('show');
+  function showCombo(n){
+    let t='连击 ×'+n+' 🔥';
+    if (!frenzy && n>=8 && n<FRENZY_AT) t='再连 '+(FRENZY_AT-n)+' 次 → 狂欢 🌟';
+    comboEl.textContent=t; comboEl.classList.add('show');
     clearTimeout(comboHideTimer); comboHideTimer=setTimeout(()=>comboEl.classList.remove('show'),1000); }
   function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show');
     clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2300); }
   function barrage(n){ for(let i=0;i<n;i++) setTimeout(()=>rockets.push(new Rocket()), i*170); }
   function grandBarrage(n){ for(let i=0;i<n;i++) setTimeout(()=>rockets.push(new Rocket(rnd(W*0.86,W*0.14),rnd(H*0.46,H*0.15),1.2)), i*140); }
 
-  // 点击里程碑彩蛋：全部复用现有引擎（emoji 取系统彩色字体，零额外资源）
+  // —— 等级 + 经验条：每点都在涨，几下就升一级（持续正反馈，几乎立刻有奖励）——
+  function threshFor(L){ return 2*(L-1)*L; }            // Lv1:0 Lv2:4 Lv3:12 Lv4:24 …（间隔每级 +4）
+  function updateXp(){
+    const cur=threshFor(level), nxt=threshFor(level+1);
+    xpfill.style.width=(Math.max(0,Math.min(1,(xp-cur)/(nxt-cur)))*100).toFixed(1)+'%';
+  }
+  function onLevelUp(L){
+    bump(cLv,L); scoreEl.classList.add('lvflash');
+    setTimeout(()=>scoreEl.classList.remove('lvflash'),650);
+    if (L%10===0){ showToast('Lv.'+L+' · 满天等级 🎆'); barrage(3); }
+    else if (L%5===0){ showToast('Lv.'+L+' 升级 🎇'); barrage(2); }
+    else rockets.push(new Rocket());                   // 普通升级也犒赏一朵
+  }
+  function addXp(n){
+    xp+=n;
+    while (xp>=threshFor(level+1)){ level++; onLevelUp(level); }
+    updateXp();
+  }
+
+  // —— 里程碑彩蛋：更密、间距更顺、全是吉利数字（emoji 取系统彩色字体，零额外资源）——
   const MILES={
-    50  :{emoji:'🎈', msg:'50 朵 · 热身完毕 🎈'},
-    100 :{emoji:'🎂', msg:'100 朵 · 生日蛋糕来啦 🎂'},
-    200 :{emoji:'🎉', msg:'200 朵 · 派对开始 🎉'},
+    10  :{emoji:'🎈', msg:'10 朵 · 开张大吉 🎈'},
+    30  :{emoji:'🍰', msg:'30 朵 · 先来块蛋糕 🍰'},
+    50  :{emoji:'🎉', msg:'50 朵 · 嗨起来 🎉'},
+    66  :{text:'顺',  msg:'66 · 顺顺利利'},
+    88  :{emoji:'💰', msg:'88 · 恭喜发财 💰'},
+    100 :{emoji:'🎂', msg:'100 朵 · 生日蛋糕来啦 🎂', grand:true},
+    150 :{emoji:'🌟', msg:'150 朵 · 闪耀全场 🌟'},
+    200 :{emoji:'🎊', msg:'200 朵 · 派对开始 🎊'},
     300 :{text:'红豆', msg:'300 朵 · 把名字写满天空'},
-    500 :{emoji:'👑', msg:'500 朵 · 今天你最大 👑'},
-    666 :{text:'六六大顺', msg:'666 · 六六大顺 🀄'},
-    888 :{emoji:'💰', msg:'888 · 发发发 💰'},
+    400 :{emoji:'🥳', msg:'400 朵 · 你是派对之王 🥳'},
+    520 :{text:'520', msg:'520 · 我爱你 ❤', grand:true},
+    666 :{text:'六六大顺', msg:'666 · 六六大顺'},
+    777 :{emoji:'🍀', msg:'777 · 幸运降临 🍀'},
+    888 :{emoji:'👑', msg:'888 · 今天你最大 👑'},
+    999 :{text:'长长久久', msg:'999 · 长长久久'},
     1000:{text:'心想事成', msg:'1000 朵 · 心想事成 🌟', grand:true},
-    2000:{emoji:'🌈', msg:'2000 朵 · 彩虹都来啦 🌈', grand:true},
-    3000:{emoji:'🦄', msg:'3000 朵 · 封你为烟花大师 🦄', grand:true},
-    5000:{emoji:'🏆', msg:'5000 朵 · 你太宠红豆啦 🏆', grand:true},
+    1314:{text:'一生一世', msg:'1314 · 一生一世 ❤', grand:true},
+    2000:{emoji:'🌈', msg:'2000 · 彩虹都来啦 🌈', grand:true},
+    3000:{emoji:'🦄', msg:'3000 · 封你为烟花大师 🦄', grand:true},
+    5000:{emoji:'🏆', msg:'5000 · 你太宠红豆啦 🏆', grand:true},
+    8888:{emoji:'🐉', msg:'8888 · 龙运当头 🐉', grand:true},
     10000:{text:'红豆生日快乐', msg:'10000 朵 · 传奇达成 🎆', grand:true, mega:true},
   };
   function celebrate(m){
     showToast(m.msg);
-    if (m.emoji) glyphBurst(m.emoji,{cyFrac:0.23, colored:true, scale:m.mega?1.15:0.95});
+    if (m.emoji) glyphBurst(m.emoji,{cyFrac:0.22, colored:true, scale:m.mega?1.15:0.95});
     if (m.text)  glyphBurst(m.text, {cyFrac:0.2});
-    // 先让形状成形，庆祝齐放延迟一会儿再来，避免盖住形状
-    setTimeout(()=>grandBarrage(m.mega?14:(m.grand?7:3)), 900);
+    setTimeout(()=>grandBarrage(m.mega?14:(m.grand?7:3)), 900);   // 先成形，再齐放，避免盖住造型
     if (m.mega){
       for(let i=0;i<6;i++) setTimeout(()=>heartBurst(rnd(W*0.82,W*0.18),rnd(H*0.55,H*0.28)),1400+i*220);
       setTimeout(()=>glyphBurst('👑',{cyFrac:0.52,colored:true,scale:0.7}),1800);
     }
   }
-  function onFirework(){
-    fw++; bump(cFw,fw);
+
+  // —— 随机「?」惊喜掉落：每点小概率天降幸运彩蛋，不靠刷数量（问号砖块感）——
+  const LUCKY=['🎁','⭐','🍬','🍀','🧧','🌟','🎈','🍭'];
+  function maybeSurprise(){
+    if (frenzy || Math.random()>=0.06) return;
+    const e=LUCKY[(Math.random()*LUCKY.length)|0];
+    setTimeout(()=>{
+      glyphBurst(e,{ cx:rnd(W*0.78,W*0.22), cy:rnd(H*0.32,H*0.18), colored:true, scale:0.5, mini:true });
+      addXp(6); showToast('天降惊喜 '+e+' · 经验 +6');
+    }, rnd(480,160));
+  }
+
+  function onFirework(xpMul){
+    fw++; bump(cFw,fw); addXp(xpMul||1);
     const m=MILES[fw];
     if (m) celebrate(m);
-    else if (fw===10) showToast('放满 100 朵有蛋糕 🎂');
+    else if (fw%500===0){ showToast(fw+' 朵 🎆 厉害！'); grandBarrage(4); }
     else if (fw%100===0){ showToast(fw+' 朵 🎆 继续~'); barrage(3); }
-    else if (fw%25===0) barrage(2);
+    else maybeSurprise();
   }
   function onHeart(){
-    ht++; bump(cHt,ht);
+    ht++; bump(cHt,ht); addXp(1);
     if (ht===100){ showToast('100 颗爱心 💗'); glyphBurst('💗',{cyFrac:0.24,colored:true,scale:0.8}); }
     else if (ht%10===0){ showToast(ht+' 颗爱心 ❤');
       for(let i=0;i<3;i++) setTimeout(()=>heartBurst(rnd(W*0.68,W*0.32),rnd(H*0.5,H*0.3)),i*200); }
+  }
+
+  // ====== 狂欢「无敌星」：连击攒满即进入数秒疯狂模式，期间每点必爆大烟花、双倍经验 ======
+  const FRENZY_AT=12, FRENZY_MS=6000;
+  let frenzy=false, frenzyEnd=-1e9, frenzyTimer=null;
+  function enterFrenzy(){
+    frenzy=true; document.body.classList.add('frenzy');
+    showToast('🌟 狂欢模式！6 秒内疯狂点 🌟');
+    grandBarrage(4);
+    clearTimeout(frenzyTimer); frenzyTimer=setTimeout(endFrenzy, FRENZY_MS);
+  }
+  function endFrenzy(){
+    frenzy=false; frenzyEnd=performance.now(); document.body.classList.remove('frenzy');
+    showToast('狂欢结束 · 真棒 ✨');
   }
 
   // ====== 手势：点夜空放烟花(连点放大) / 点名字比心 / 长按 finale ======
@@ -496,12 +588,16 @@
     const x=e.clientX, y=e.clientY, now=performance.now();
     if (hitName(x,y)){                                // 点名字「红豆」→ 比心
       heartBurst(x, y); onHeart(); combo=0;
+    } else if (frenzy){                               // 狂欢模式：每点必爆大彩烟、双倍经验
+      const r=new Rocket(x, Math.min(y,H*0.5), 1.55); r.hue=shellHue(); rockets.push(r);
+      onFirework(2);
     } else {                                          // 点夜空 → 放烟花 + 连点放大
       combo = (now-lastFw<820) ? combo+1 : 1; lastFw=now;
       const boost = 1 + Math.min((combo-1)*0.07, 0.6);
       if (y<H*0.6) rockets.push(new Rocket(x,y,boost)); else burst(x,y-4,shellHue(),boost);
       onFirework();
       if (combo>=3) showCombo(combo);
+      if (combo>=FRENZY_AT && now-frenzyEnd>4000) enterFrenzy();   // 攒满连击 → 无敌星
     }
   }, {passive:true});
   cv.addEventListener('pointercancel', ()=>{ if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} }, {passive:true});
@@ -570,7 +666,7 @@
 
   // ====== 提示语轮播（悄悄教手势） ======
   const hintEl=document.getElementById('hint');
-  const HINTS=['轻 触 夜 空 · 绽 放 烟 花','连 点 越 快 · 烟 花 越 大 🔥','点「红 豆」· 为 她 比 心 ❤','长 按 · 满 天 花 火 🎆','右 上 角 · 听 生 日 歌 🎵'];
+  const HINTS=['轻 触 夜 空 · 绽 放 烟 花','连 点 越 快 · 烟 花 越 大 🔥','连 满 12 · 解 锁 狂 欢 🌟','点「红 豆」· 为 她 比 心 ❤','长 按 · 满 天 花 火 🎆','一 直 点 · 处 处 是 惊 喜 🎁'];
   let hi=0;
   setInterval(()=>{
     hintEl.style.opacity='0';
