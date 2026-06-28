@@ -270,33 +270,42 @@
     }
   }
 
-  // 🎆 文字烟花：像素采样→火星汇聚成字，彩虹渐变 + 流光变色 + 长停留
-  function textBurst(str, cyFrac){
+  // 🎆 文字/表情 烟花：像素采样→火星汇聚成形（emoji 用真实颜色，文字用彩虹渐变）
+  function glyphBurst(str, opt){
+    opt=opt||{};
+    const cyFrac = opt.cyFrac!=null?opt.cyFrac:0.2;
+    const colored = !!opt.colored, scaleMul = opt.scale||1, fs=180;
+    const font = colored ? `${fs}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`
+                         : `700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
     const oc=document.createElement('canvas'), o2=oc.getContext('2d');
-    const fs=180;
-    o2.font=`700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    o2.font=font;
     const wpx=Math.ceil(o2.measureText(str).width)+24;
-    oc.width=wpx; oc.height=Math.ceil(fs*1.5);
-    o2.font=`700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
-    o2.fillStyle='#fff'; o2.textBaseline='middle'; o2.fillText(str,12,oc.height/2);
+    oc.width=Math.max(wpx,fs+24); oc.height=Math.ceil(fs*1.5);
+    o2.font=font; o2.textBaseline='middle'; if(!colored) o2.fillStyle='#fff';
+    o2.fillText(str,12,oc.height/2);
     const img=o2.getImageData(0,0,oc.width,oc.height).data;
     let pts=[]; const step=4;
-    for (let y=0;y<oc.height;y+=step) for (let x=0;x<oc.width;x+=step)
-      if (img[(y*oc.width+x)*4+3]>128) pts.push([x,y]);
-    const MAXP=460; if (pts.length>MAXP){ const k=pts.length/MAXP, out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
-    const targetW=Math.min(W*0.84,520), sc=targetW/oc.width;
-    const ox=W/2-oc.width*sc/2, oy=H*cyFrac-oc.height*sc/2;
-    const cx=W/2, cy=H*cyFrac;
-    flash(cx,cy,330,180);
-    for (const [px,py] of pts){
-      const hue = 18 + (px/oc.width)*320;                 // 沿字横向铺一条彩虹
-      spawn({text:true, x:cx+rnd(60,-60), y:cy+rnd(40,-40), tx:ox+px*sc, ty:oy+py*sc,
-             hue, light:rnd(72,60), life:0, max:rnd(420,360),  // 停留 ~6–7s
-             w:rnd(2.3,1.4), twk:Math.random()<.5, shim:Math.random()<.7});
+    for (let y=0;y<oc.height;y+=step) for (let x=0;x<oc.width;x+=step){
+      const idx=(y*oc.width+x)*4;
+      if (img[idx+3]>140) pts.push([x,y,img[idx],img[idx+1],img[idx+2]]);
     }
-    // 四周点缀小烟花，更热闹
-    for (let i=0;i<4;i++) setTimeout(()=>burst(rnd(W*0.78,W*0.22), H*cyFrac+rnd(70,-30), shellHue()), 300+i*280);
+    if (!pts.length) return;
+    const MAXP=480; if (pts.length>MAXP){ const k=pts.length/MAXP,out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
+    const targetW=Math.min(W*0.84,520)*scaleMul, sc=targetW/oc.width;
+    const ox=W/2-oc.width*sc/2, oy=H*cyFrac-oc.height*sc/2;
+    const cx=W/2, cy=H*cyFrac, br=v=>Math.min(255,Math.round(v*1.4+40));
+    flash(cx,cy,colored?45:330,180);
+    for (const [px,py,r,g,bl] of pts){
+      const o={ text:true, x:cx+rnd(60,-60), y:cy+rnd(40,-40), tx:ox+px*sc, ty:oy+py*sc,
+                life:0, max:rnd(430,360), w:rnd(2.3,1.4), twk:Math.random()<.5 };
+      if (colored) o.rgb=`${br(r)},${br(g)},${br(bl)}`;     // emoji 真实颜色（提亮以适配叠加）
+      else { o.hue=18+(px/oc.width)*320; o.light=rnd(72,60); o.shim=Math.random()<.7; }
+      spawn(o);
+    }
+    // 形状下方点缀两朵小烟花助兴（不盖住形状）
+    for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), H*cyFrac+rnd(170,110), shellHue()), 700+i*320);
   }
+  function textBurst(str, cyFrac){ glyphBurst(str, {cyFrac:cyFrac}); }
 
   function spawnMeteor(){
     const dir = Math.random()<0.5?1:-1;
@@ -358,18 +367,20 @@
     for (let i=particles.length-1;i>=0;i--){
       const p=particles[i];
 
-      if (p.text){                                   // 文字烟花：缓动汇聚 + 流光变色 + 长停留
+      if (p.text){                                   // 文字/表情烟花：缓动汇聚 + 长停留
         p.x+=(p.tx-p.x)*0.16; p.y+=(p.ty-p.y)*0.16; p.life++;
         const prog=p.life/p.max; if(prog>=1){ particles.splice(i,1); continue; }
         let a = prog<0.12 ? prog/0.12 : (prog>0.78 ? (1-prog)/0.22 : 1);
         if (p.twk) a*=(Math.random()<0.8?1:0.55);
-        const hue = p.shim ? p.hue + Math.sin(p.life*0.05 + p.tx*0.01)*40 : p.hue;  // 流光变色
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.4,0,TAU);                            // 彩色光晕
-        ctx.fillStyle=`hsla(${hue},100%,60%,${a*0.16})`; ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);
-        ctx.fillStyle=`hsla(${hue},95%,${p.light}%,${a})`; ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.w*0.5,0,TAU);
-        ctx.fillStyle=`hsla(${hue},90%,90%,${a})`; ctx.fill();
+        if (p.rgb){                                  // emoji 真实颜色
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.0,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a*0.14})`; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`rgba(${p.rgb},${a})`;      ctx.fill();
+        } else {                                     // 文字：彩虹 + 流光变色
+          const hue = p.shim ? p.hue + Math.sin(p.life*0.05 + p.tx*0.01)*40 : p.hue;
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.4,0,TAU); ctx.fillStyle=`hsla(${hue},100%,60%,${a*0.16})`; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`hsla(${hue},95%,${p.light}%,${a})`; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*0.5,0,TAU); ctx.fillStyle=`hsla(${hue},90%,90%,${a})`; ctx.fill();
+        }
         continue;
       }
 
@@ -420,15 +431,48 @@
     clearTimeout(comboHideTimer); comboHideTimer=setTimeout(()=>comboEl.classList.remove('show'),1000); }
   function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show');
     clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2300); }
+  function barrage(n){ for(let i=0;i<n;i++) setTimeout(()=>rockets.push(new Rocket()), i*170); }
+  function grandBarrage(n){ for(let i=0;i<n;i++) setTimeout(()=>rockets.push(new Rocket(rnd(W*0.86,W*0.14),rnd(H*0.46,H*0.15),1.2)), i*140); }
+
+  // 点击里程碑彩蛋：全部复用现有引擎（emoji 取系统彩色字体，零额外资源）
+  const MILES={
+    50  :{emoji:'🎈', msg:'50 朵 · 热身完毕 🎈'},
+    100 :{emoji:'🎂', msg:'100 朵 · 生日蛋糕来啦 🎂'},
+    200 :{emoji:'🎉', msg:'200 朵 · 派对开始 🎉'},
+    300 :{text:'红豆', msg:'300 朵 · 把名字写满天空'},
+    500 :{emoji:'👑', msg:'500 朵 · 今天你最大 👑'},
+    666 :{text:'六六大顺', msg:'666 · 六六大顺 🀄'},
+    888 :{emoji:'💰', msg:'888 · 发发发 💰'},
+    1000:{text:'心想事成', msg:'1000 朵 · 心想事成 🌟', grand:true},
+    2000:{emoji:'🌈', msg:'2000 朵 · 彩虹都来啦 🌈', grand:true},
+    3000:{emoji:'🦄', msg:'3000 朵 · 封你为烟花大师 🦄', grand:true},
+    5000:{emoji:'🏆', msg:'5000 朵 · 你太宠红豆啦 🏆', grand:true},
+    10000:{text:'红豆生日快乐', msg:'10000 朵 · 传奇达成 🎆', grand:true, mega:true},
+  };
+  function celebrate(m){
+    showToast(m.msg);
+    if (m.emoji) glyphBurst(m.emoji,{cyFrac:0.23, colored:true, scale:m.mega?1.15:0.95});
+    if (m.text)  glyphBurst(m.text, {cyFrac:0.2});
+    // 先让形状成形，庆祝齐放延迟一会儿再来，避免盖住形状
+    setTimeout(()=>grandBarrage(m.mega?14:(m.grand?7:3)), 900);
+    if (m.mega){
+      for(let i=0;i<6;i++) setTimeout(()=>heartBurst(rnd(W*0.82,W*0.18),rnd(H*0.55,H*0.28)),1400+i*220);
+      setTimeout(()=>glyphBurst('👑',{cyFrac:0.52,colored:true,scale:0.7}),1800);
+    }
+  }
   function onFirework(){
     fw++; bump(cFw,fw);
-    if (fw%12===0){ showToast('已为红豆绽放 '+fw+' 朵烟花 🎉'); setTimeout(()=>textBurst('生日快乐',0.2),220); }
-    else if (fw===5) showToast('多点几下，有惊喜 ✨');
+    const m=MILES[fw];
+    if (m) celebrate(m);
+    else if (fw===10) showToast('放满 100 朵有蛋糕 🎂');
+    else if (fw%100===0){ showToast(fw+' 朵 🎆 继续~'); barrage(3); }
+    else if (fw%25===0) barrage(2);
   }
   function onHeart(){
     ht++; bump(cHt,ht);
-    if (ht%6===0){ showToast('收到 '+ht+' 颗爱心 ❤');
-      for(let i=0;i<3;i++) setTimeout(()=>heartBurst(rnd(W*0.68,W*0.32),rnd(H*0.5,H*0.3)),i*220); }
+    if (ht===100){ showToast('100 颗爱心 💗'); glyphBurst('💗',{cyFrac:0.24,colored:true,scale:0.8}); }
+    else if (ht%10===0){ showToast(ht+' 颗爱心 ❤');
+      for(let i=0;i<3;i++) setTimeout(()=>heartBurst(rnd(W*0.68,W*0.32),rnd(H*0.5,H*0.3)),i*200); }
   }
 
   // ====== 手势：点夜空放烟花(连点放大) / 点名字比心 / 长按 finale ======
