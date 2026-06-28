@@ -193,6 +193,7 @@
 <div id="combo" class="combo"></div>
 <div id="toast" class="toast"></div>
 <div id="hint" class="hint">轻 触 夜 空 · 为 你 绽 放</div>
+<label id="haplbl" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;"><input type="checkbox" switch></label>
 
 <script>
 (() => {
@@ -254,7 +255,7 @@
       if (--this.life<=0){ burst(this.x,this.y,this.hue,this.boost); return false; } return true;
     }
     draw(){ ctx.beginPath(); ctx.arc(this.x,this.y,2,0,TAU);
-            ctx.fillStyle=`hsla(${this.hue},90%,82%,.95)`; ctx.fill(); }
+            ctx.fillStyle=`hsla(${this.hue},90%,82%,${0.95*bgDim})`; ctx.fill(); }
   }
 
   function flash(x,y,hue,maxr){ flashes.push({x,y,hue,r:4,mr:maxr,a:1}); }
@@ -299,10 +300,11 @@
     }
   }
 
-  // 庆祝时压暗文字层 ~ms，让烟花造型清晰可见（修复被前景文字遮挡）
-  let partyTimer=null;
-  function party(ms){ document.body.classList.add('party');
-    clearTimeout(partyTimer); partyTimer=setTimeout(()=>document.body.classList.remove('party'), ms); }
+  // 庆祝时压暗文字层 + 背景烟花(spotlight)，让烟花造型清晰可见（造型粒子本身不调暗）
+  let partyTimer=null, bgTimer=null, bgDim=1, bgDimTarget=1;
+  function party(ms){ document.body.classList.add('party'); bgDimTarget=0.28;
+    clearTimeout(partyTimer); partyTimer=setTimeout(()=>document.body.classList.remove('party'), ms);
+    clearTimeout(bgTimer);   bgTimer=setTimeout(()=>{ bgDimTarget=1; }, Math.min(ms,1500)); }
 
   // 🎆 文字/表情 烟花：像素采样→火星汇聚成形（emoji 用真实颜色，文字用彩虹渐变）
   // opt: {cyFrac, cx, cy, colored, scale, mini}  mini=小惊喜（不压暗文字、不放陪衬烟花）
@@ -364,6 +366,7 @@
     ctx.globalCompositeOperation='lighter';
 
     const time=performance.now()*0.001;
+    bgDim += (bgDimTarget-bgDim)*0.08;   // 特效期间背景烟花渐暗，让造型更突出
     for (const s of stars){
       const a=s.base+Math.sin(time*s.tw+s.ph)*s.base*0.8;
       ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,TAU);
@@ -388,11 +391,11 @@
     }
 
     for (let i=flashes.length-1;i>=0;i--){
-      const f=flashes[i];
+      const f=flashes[i]; const fa=f.a*bgDim;
       const g=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
-      g.addColorStop(0,   `hsla(${f.hue},85%,90%,${f.a})`);
-      g.addColorStop(0.22,`hsla(${f.hue},100%,66%,${f.a*0.7})`);
-      g.addColorStop(0.55,`hsla(${f.hue},100%,54%,${f.a*0.34})`);  // 彩色光晕环
+      g.addColorStop(0,   `hsla(${f.hue},85%,90%,${fa})`);
+      g.addColorStop(0.22,`hsla(${f.hue},100%,66%,${fa*0.7})`);
+      g.addColorStop(0.55,`hsla(${f.hue},100%,54%,${fa*0.34})`);  // 彩色光晕环
       g.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=g; ctx.fillRect(f.x-f.r,f.y-f.r,f.r*2,f.r*2);
       f.r+=(f.mr-f.r)*0.18; f.a*=0.86; if(f.a<0.025) flashes.splice(i,1);  // 扩得更慢、停留更久
@@ -424,7 +427,7 @@
       p.px=p.x; p.py=p.y;
       p.vx*=p.fr; p.vy*=p.fr; p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.life++;
       const k=1-p.life/p.max; if(k<=0){ particles.splice(i,1); continue; }
-      let a=k*k; if(p.twk&&k<0.7) a*=(Math.random()<0.6?1:0.28);
+      let a=k*k*bgDim; if(p.twk&&k<0.7) a*=(Math.random()<0.6?1:0.28);
       if (p.head){                                    // 彩色柔光晕（bloom）
         ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.6,0,TAU);
         ctx.fillStyle=`hsla(${p.hue},100%,58%,${a*0.13})`; ctx.fill();
@@ -449,7 +452,7 @@
       e.x+=e.vx; e.y+=e.vy;
       if (e.y<-e.r){ e.y=H+e.r; e.x=rnd(W); }
       if (e.x<-e.r) e.x=W+e.r; else if (e.x>W+e.r) e.x=-e.r;
-      const a=Math.max(0, e.a*(0.6+0.4*Math.sin(time*e.tw+e.ph)));
+      const a=Math.max(0, e.a*(0.6+0.4*Math.sin(time*e.tw+e.ph))*bgDim);
       const g=fgx.createRadialGradient(e.x,e.y,0,e.x,e.y,e.r);
       g.addColorStop(0,`hsla(${e.hue},90%,70%,${a})`);
       g.addColorStop(1,`hsla(${e.hue},90%,60%,0)`);
@@ -457,6 +460,16 @@
     }
 
     requestAnimationFrame(tick);
+  }
+
+  // ====== 手机震动（触感反馈）======
+  // 安卓浏览器支持 navigator.vibrate；iOS Safari/微信不支持网页振动（系统限制），用 <input switch> 触感兜底
+  // （新版 Safari 偶尔有效，微信内多半无效；且 iPhone 侧边静音键打开时也不会震）
+  const haplbl=document.getElementById('haplbl');
+  const HAS_VIB = 'vibrate' in navigator;
+  function buzz(p){
+    if (HAS_VIB){ try{ navigator.vibrate(p); }catch(e){} return; }
+    try{ haplbl.click(); }catch(e){}
   }
 
   // ====== 计数 / 等级 / 连击 / 里程碑 ======
@@ -484,7 +497,7 @@
     xpfill.style.width=(Math.max(0,Math.min(1,(xp-cur)/(nxt-cur)))*100).toFixed(1)+'%';
   }
   function onLevelUp(L){
-    bump(cLv,L); scoreEl.classList.add('lvflash');
+    bump(cLv,L); scoreEl.classList.add('lvflash'); buzz(L%5===0?[0,25,40,25]:16);
     setTimeout(()=>scoreEl.classList.remove('lvflash'),650);
     if (L%10===0){ showToast('Lv.'+L+' · 满天等级 🎆'); barrage(3); }
     else if (L%5===0){ showToast('Lv.'+L+' 升级 🎇'); barrage(2); }
@@ -523,6 +536,7 @@
   };
   function celebrate(m){
     showToast(m.msg);
+    buzz(m.mega?[0,55,30,55,30,90]:(m.grand?[0,45,25,45]:[0,30,20,30]));
     if (m.emoji) glyphBurst(m.emoji,{cyFrac:0.22, colored:true, scale:m.mega?1.15:0.95});
     if (m.text)  glyphBurst(m.text, {cyFrac:0.2});
     setTimeout(()=>grandBarrage(m.mega?14:(m.grand?7:3)), 900);   // 先成形，再齐放，避免盖住造型
@@ -562,7 +576,7 @@
   const FRENZY_AT=12, FRENZY_MS=6000;
   let frenzy=false, frenzyEnd=-1e9, frenzyTimer=null;
   function enterFrenzy(){
-    frenzy=true; document.body.classList.add('frenzy');
+    frenzy=true; document.body.classList.add('frenzy'); buzz([0,40,20,40,20,40,20,80]);
     showToast('🌟 狂欢模式！6 秒内疯狂点 🌟');
     grandBarrage(4);
     clearTimeout(frenzyTimer); frenzyTimer=setTimeout(endFrenzy, FRENZY_MS);
@@ -592,15 +606,15 @@
     if (lpFired) return;                              // 长按已触发，吞掉这次抬手
     const x=e.clientX, y=e.clientY, now=performance.now();
     if (hitName(x,y)){                                // 点名字「红豆」→ 比心
-      heartBurst(x, y); onHeart(); combo=0;
+      heartBurst(x, y); onHeart(); combo=0; buzz(10);
     } else if (frenzy){                               // 狂欢模式：每点必爆大彩烟、双倍经验
       const r=new Rocket(x, Math.min(y,H*0.5), 1.55); r.hue=shellHue(); rockets.push(r);
-      onFirework(2);
+      onFirework(2); buzz(18);
     } else {                                          // 点夜空 → 放烟花 + 连点放大
       combo = (now-lastFw<820) ? combo+1 : 1; lastFw=now;
       const boost = 1 + Math.min((combo-1)*0.07, 0.6);
       if (y<H*0.6) rockets.push(new Rocket(x,y,boost)); else burst(x,y-4,shellHue(),boost);
-      onFirework();
+      onFirework(); buzz(13);
       if (combo>=3) showCombo(combo);
       if (combo>=FRENZY_AT && now-frenzyEnd>4000) enterFrenzy();   // 攒满连击 → 无敌星
     }
@@ -657,17 +671,23 @@
     if (actx.state==='running') cb();
     else actx.resume().then(cb).catch(cb);
   }
-  // 音乐常开、不可关；首次“抬手/点击”或微信桥就绪即起音
-  // 关键：iOS 只在 touchend/click 才可靠解锁音频，且必须等 resume 完成再排音
-  function startMusic(){
+  // 音乐常开、不可关；任意手势或微信桥就绪即起音
+  // 关键修复：必须 AudioContext 真正 running 后才标记 started；否则每次手势都重试 resume
+  // （旧 bug：微信桥事件里没手势、resume 失败也置 started=真 → 之后真实点击不再重试 → 一直没声音）
+  function tryStart(){
     if (started || !initAudio()) return;
-    started=true;
-    resumeThen(playHB);
+    const go=()=>{ if (!started && actx.state==='running'){ started=true; playHB(); } };
+    if (actx.state==='running') go();
+    else actx.resume().then(go).catch(()=>{});
   }
-  if (window.WeixinJSBridge) startMusic();                 // 微信内：免点自动播放
-  else document.addEventListener('WeixinJSBridgeReady', startMusic, false);
-  ['touchend','click','pointerup'].forEach(ev=>          // 其它环境：首次抬手/点击即起音
-    document.addEventListener(ev, startMusic, {capture:true, passive:true}));
+  function wxUnlock(){                                     // 微信标准解锁：invoke 网络类型，在其回调里起音
+    if (window.WeixinJSBridge){ try{ WeixinJSBridge.invoke('getNetworkType',{}, tryStart); }catch(e){ tryStart(); } }
+    else tryStart();
+  }
+  if (window.WeixinJSBridge) wxUnlock();
+  document.addEventListener('WeixinJSBridgeReady', wxUnlock, false);
+  ['touchstart','touchend','click','pointerup','pointerdown'].forEach(ev=>  // 各环境：任意手势都尝试解锁
+    document.addEventListener(ev, tryStart, {capture:true, passive:true}));
 
   // ====== 提示语轮播（悄悄教手势） ======
   const hintEl=document.getElementById('hint');
