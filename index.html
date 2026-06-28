@@ -127,22 +127,26 @@
   @keyframes pop{ 0%{transform:scale(1)} 40%{transform:scale(1.55); color:#fff} 100%{transform:scale(1)} }
 
   .combo{
-    position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 74px); z-index:5;
-    text-align:center; pointer-events:none;
+    position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 74px); z-index:6;
+    pointer-events:none; white-space:nowrap;
     font-family:"PingFang SC",sans-serif; font-weight:700; font-size:21px; color:#ffd36b;
+    background:rgba(10,7,18,.42); border-radius:14px; padding:5px 15px;
+    -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
     text-shadow:0 0 14px rgba(246,180,80,.75);
-    opacity:0; transform:translateY(8px) scale(.9); transition:all .2s ease;
+    opacity:0; transform:translate(-50%,8px) scale(.9); transition:all .2s ease;
   }
-  .combo.show{ opacity:1; transform:translateY(0) scale(1); }
+  .combo.show{ opacity:1; transform:translate(-50%,0) scale(1); }
 
   .toast{
-    position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 116px); z-index:5;
-    text-align:center; pointer-events:none; padding:0 30px;
-    font-family:"PingFang SC",sans-serif; font-size:15px; letter-spacing:1px; color:#fff;
-    text-shadow:0 2px 12px rgba(0,0,0,.65);
-    opacity:0; transform:translateY(8px); transition:all .35s ease;
+    position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 116px); z-index:6;
+    max-width:88vw; text-align:center; pointer-events:none;
+    font-family:"PingFang SC",sans-serif; font-size:15px; letter-spacing:.5px; color:#fff;
+    background:rgba(10,7,18,.5); border:1px solid rgba(246,210,122,.28); border-radius:16px; padding:8px 16px;
+    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+    text-shadow:0 2px 10px rgba(0,0,0,.85); box-shadow:0 4px 20px rgba(0,0,0,.4);
+    opacity:0; transform:translate(-50%,8px); transition:all .35s ease;
   }
-  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
 
   /* —— 庆祝时压暗文字层，让烟花造型成为主角（修复"被字遮挡"）—— */
   .stage,.textglow,.vignette{ transition:opacity .55s ease; }
@@ -150,8 +154,9 @@
   body.party .textglow{ opacity:.35; }
   body.party .vignette{ opacity:.28; }
 
-  /* —— 等级 + 经验条 —— */
-  .score{ position:relative; overflow:hidden; display:inline-flex; gap:8px; align-items:center;
+  /* —— 等级 + 经验条 ——（注意：不要写 position:relative，会覆盖原 fixed 让计数器跑到左上角被切；
+     fixed 本身已是 xpfill 的定位上下文）*/
+  .score{ overflow:hidden; display:inline-flex; gap:8px; align-items:center;
           transition:box-shadow .3s ease, border-color .3s ease; }
   .score .lvtag{ color:#ffe6a8; font-weight:700; letter-spacing:.5px; }
   .xpfill{ position:absolute; left:0; bottom:0; height:3px; width:0%;
@@ -324,7 +329,7 @@
     const cx = opt.cx!=null?opt.cx:W/2;
     const cy = opt.cy!=null?opt.cy:H*(opt.cyFrac!=null?opt.cyFrac:0.2);
     const ox=cx-oc.width*sc/2, oy=cy-oc.height*sc/2;
-    const br=v=>Math.min(255,Math.round(v*1.4+40));
+    const br=v=>Math.min(255,Math.round(v*1.25+28));
     if (!mini) party(2400);
     flash(cx,cy,colored?45:330, mini?100:180);
     for (const [px,py,r,g,bl] of pts){
@@ -332,7 +337,7 @@
                 life:0, max:rnd(430,360), w:rnd(2.3,1.4), twk:Math.random()<.5 };
       if (colored) o.rgb=`${br(r)},${br(g)},${br(bl)}`;     // emoji 真实颜色（提亮以适配叠加）
       else { o.hue=18+(px/oc.width)*320; o.light=rnd(72,60); o.shim=Math.random()<.7; }
-      spawn(o);
+      particles.push(o);   // 直接入池、绕过 MAX 上限：连击/狂欢粒子打满时，造型也不会缺粒子残缺
     }
     // 形状下方点缀两朵小烟花助兴（不盖住形状）
     if (!mini) for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), cy+rnd(170,110), shellHue()), 700+i*320);
@@ -404,9 +409,9 @@
         const prog=p.life/p.max; if(prog>=1){ particles.splice(i,1); continue; }
         let a = prog<0.12 ? prog/0.12 : (prog>0.78 ? (1-prog)/0.22 : 1);
         if (p.twk) a*=(Math.random()<0.8?1:0.55);
-        if (p.rgb){                                  // emoji 真实颜色
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.0,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a*0.14})`; ctx.fill();
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`rgba(${p.rgb},${a})`;      ctx.fill();
+        if (p.rgb){                                  // emoji 真实颜色（压一点叠加亮度，密集时不易糊白）
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*1.8,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a*0.10})`; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`rgba(${p.rgb},${a*0.92})`;  ctx.fill();
         } else {                                     // 文字：彩虹 + 流光变色
           const hue = p.shim ? p.hue + Math.sin(p.life*0.05 + p.tx*0.01)*40 : p.hue;
           ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.4,0,TAU); ctx.fillStyle=`hsla(${hue},100%,60%,${a*0.16})`; ctx.fill();
