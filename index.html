@@ -302,7 +302,7 @@
 
   // 庆祝时压暗文字层 + 背景烟花(spotlight)，让烟花造型清晰可见（造型粒子本身不调暗）
   let partyTimer=null, bgTimer=null, bgDim=1, bgDimTarget=1;
-  function party(ms){ document.body.classList.add('party'); bgDimTarget=0.28;
+  function party(ms){ document.body.classList.add('party'); bgDimTarget=0.22;
     clearTimeout(partyTimer); partyTimer=setTimeout(()=>document.body.classList.remove('party'), ms);
     clearTimeout(bgTimer);   bgTimer=setTimeout(()=>{ bgDimTarget=1; }, Math.min(ms,1500)); }
 
@@ -320,25 +320,28 @@
     o2.font=font; o2.textBaseline='middle'; if(!colored) o2.fillStyle='#fff';
     o2.fillText(str,12,oc.height/2);
     const img=o2.getImageData(0,0,oc.width,oc.height).data;
-    let pts=[]; const step=4;
+    let pts=[]; const step=3;
     for (let y=0;y<oc.height;y+=step) for (let x=0;x<oc.width;x+=step){
       const idx=(y*oc.width+x)*4;
-      if (img[idx+3]>140) pts.push([x,y,img[idx],img[idx+1],img[idx+2]]);
+      if (img[idx+3]>150) pts.push([x,y,img[idx],img[idx+1],img[idx+2]]);
     }
     if (!pts.length) return;
-    const MAXP=480; if (pts.length>MAXP){ const k=pts.length/MAXP,out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
-    const targetW=Math.min(W*0.84,520)*scaleMul, sc=targetW/oc.width;
+    const MAXP = mini?320:(colored?1100:1600);   // 取样更密 → 更清晰；文字笔画多，给更多点
+    if (pts.length>MAXP){ const k=pts.length/MAXP,out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
     const cx = opt.cx!=null?opt.cx:W/2;
     const cy = opt.cy!=null?opt.cy:H*(opt.cyFrac!=null?opt.cyFrac:0.2);
+    // emoji 充满大半屏；文字按"字高"定尺寸（单字不被拉太大而稀疏，多字也不至于太小）
+    const sc = colored ? (Math.min(W*0.86,540)*scaleMul)/oc.width
+                       : Math.min(H*0.2/oc.height, W*0.88/oc.width)*scaleMul;
     const ox=cx-oc.width*sc/2, oy=cy-oc.height*sc/2;
-    const br=v=>Math.min(255,Math.round(v*1.25+28));
+    const br=v=>Math.min(255,Math.round(v*1.12+20));   // 更接近真实色，蛋糕/独角兽等更易认
     if (!mini) party(2400);
     flash(cx,cy,colored?45:330, mini?100:180);
     for (const [px,py,r,g,bl] of pts){
-      const o={ text:true, x:cx+rnd(60,-60), y:cy+rnd(40,-40), tx:ox+px*sc, ty:oy+py*sc,
-                life:0, max:rnd(430,360), w:rnd(2.3,1.4), twk:Math.random()<.5 };
-      if (colored) o.rgb=`${br(r)},${br(g)},${br(bl)}`;     // emoji 真实颜色（提亮以适配叠加）
-      else { o.hue=18+(px/oc.width)*320; o.light=rnd(72,60); o.shim=Math.random()<.7; }
+      const o={ text:true, x:cx+rnd(44,-44), y:cy+rnd(30,-30), tx:ox+px*sc, ty:oy+py*sc,
+                life:0, max:rnd(450,380), w:rnd(1.85,1.15), twk:Math.random()<.26 };   // 点更小更密、闪烁更少 → 更锐利
+      if (colored) o.rgb=`${br(r)},${br(g)},${br(bl)}`;     // emoji 真实颜色
+      else { o.hue=44+rnd(7,-7); o.light=rnd(80,66); }      // 文字：暖金书法色（纯色比彩虹更易认）
       particles.push(o);   // 直接入池、绕过 MAX 上限：连击/狂欢粒子打满时，造型也不会缺粒子残缺
     }
     // 形状下方点缀两朵小烟花助兴（不盖住形状）
@@ -408,18 +411,20 @@
       const p=particles[i];
 
       if (p.text){                                   // 文字/表情烟花：缓动汇聚 + 长停留
-        p.x+=(p.tx-p.x)*0.16; p.y+=(p.ty-p.y)*0.16; p.life++;
+        p.x+=(p.tx-p.x)*0.2; p.y+=(p.ty-p.y)*0.2; p.life++;     // 收拢更快、定位更稳 → 边缘更锐
         const prog=p.life/p.max; if(prog>=1){ particles.splice(i,1); continue; }
-        let a = prog<0.12 ? prog/0.12 : (prog>0.78 ? (1-prog)/0.22 : 1);
-        if (p.twk) a*=(Math.random()<0.8?1:0.55);
-        if (p.rgb){                                  // emoji 真实颜色（压一点叠加亮度，密集时不易糊白）
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*1.8,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a*0.10})`; ctx.fill();
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`rgba(${p.rgb},${a*0.92})`;  ctx.fill();
-        } else {                                     // 文字：彩虹 + 流光变色
-          const hue = p.shim ? p.hue + Math.sin(p.life*0.05 + p.tx*0.01)*40 : p.hue;
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.4,0,TAU); ctx.fillStyle=`hsla(${hue},100%,60%,${a*0.16})`; ctx.fill();
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);     ctx.fillStyle=`hsla(${hue},95%,${p.light}%,${a})`; ctx.fill();
-          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*0.5,0,TAU); ctx.fillStyle=`hsla(${hue},90%,90%,${a})`; ctx.fill();
+        let a = prog<0.1 ? prog/0.1 : (prog>0.82 ? (1-prog)/0.18 : 1);   // 成形更快、满亮停留更久
+        if (p.twk) a*=(Math.random()<0.85?1:0.6);
+        if (p.rgb){                                  // emoji：真实色用 source-over，密集也不糊白
+          ctx.globalCompositeOperation='source-over';
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a})`; ctx.fill();
+          ctx.globalCompositeOperation='lighter';
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*1.5,0,TAU); ctx.fillStyle=`rgba(${p.rgb},${a*0.05})`; ctx.fill();
+        } else {                                     // 文字：暖金实心点(source-over) + 一点辉光，笔画清楚
+          ctx.globalCompositeOperation='source-over';
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU); ctx.fillStyle=`hsla(${p.hue},92%,${p.light}%,${a})`; ctx.fill();
+          ctx.globalCompositeOperation='lighter';
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.w*1.7,0,TAU); ctx.fillStyle=`hsla(${p.hue},95%,70%,${a*0.10})`; ctx.fill();
         }
         continue;
       }
