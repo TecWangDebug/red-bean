@@ -112,6 +112,37 @@
   .mbtn:active{ transform:scale(.9); }
   .mbtn.pulse{ animation:hintIn .8s ease forwards, mpulse 2.2s ease-in-out 2s infinite; }
   @keyframes mpulse{ 0%,100%{ box-shadow:0 2px 16px rgba(0,0,0,.35);} 50%{ box-shadow:0 0 18px rgba(246,210,122,.6);} }
+
+  /* 计数器 / 连击 / 飘字 */
+  .score{
+    position:fixed; left:16px; bottom:calc(env(safe-area-inset-bottom) + 18px); z-index:5;
+    font-family:"PingFang SC",-apple-system,sans-serif; font-size:13px; letter-spacing:1px;
+    color:rgba(255,225,210,.82); background:rgba(255,255,255,.05); border:1px solid rgba(246,210,122,.25);
+    padding:7px 13px; border-radius:20px; pointer-events:none;
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    opacity:0; animation:hintIn .8s ease 1.8s forwards;
+  }
+  .score b{ display:inline-block; color:#f6d27a; font-size:14px; min-width:12px; text-align:center; }
+  .score b.pop{ animation:pop .36s ease; }
+  @keyframes pop{ 0%{transform:scale(1)} 40%{transform:scale(1.55); color:#fff} 100%{transform:scale(1)} }
+
+  .combo{
+    position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 74px); z-index:5;
+    text-align:center; pointer-events:none;
+    font-family:"PingFang SC",sans-serif; font-weight:700; font-size:21px; color:#ffd36b;
+    text-shadow:0 0 14px rgba(246,180,80,.75);
+    opacity:0; transform:translateY(8px) scale(.9); transition:all .2s ease;
+  }
+  .combo.show{ opacity:1; transform:translateY(0) scale(1); }
+
+  .toast{
+    position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 116px); z-index:5;
+    text-align:center; pointer-events:none; padding:0 30px;
+    font-family:"PingFang SC",sans-serif; font-size:15px; letter-spacing:1px; color:#fff;
+    text-shadow:0 2px 12px rgba(0,0,0,.65);
+    opacity:0; transform:translateY(8px); transition:all .35s ease;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
 </style>
 </head>
 <body>
@@ -130,6 +161,9 @@
 </div>
 <canvas id="fg" class="fg"></canvas>
 <div id="mbtn" class="mbtn pulse" aria-label="音乐">🎵</div>
+<div id="score" class="score">🎆 <b id="cFw">0</b>　❤ <b id="cHt">0</b></div>
+<div id="combo" class="combo"></div>
+<div id="toast" class="toast"></div>
 <div id="hint" class="hint">轻 触 夜 空 · 为 你 绽 放</div>
 
 <script>
@@ -178,18 +212,18 @@
   const spawn = p => { if (particles.length < MAX) particles.push(p); };
 
   class Rocket{
-    constructor(tx,ty){
+    constructor(tx,ty,boost){
       this.x=rnd(W*0.72,W*0.28); this.y=H+8;
       this.tx=tx!=null?tx:rnd(W*0.82,W*0.18); this.ty=ty!=null?ty:rnd(H*0.46,H*0.16);
       const f=rnd(62,48); this.vx=(this.tx-this.x)/f; this.vy=(this.ty-this.y)/f;
-      this.life=f; this.hue=shellHue(); this.wob=rnd(TAU);
+      this.life=f; this.hue=shellHue(); this.wob=rnd(TAU); this.boost=boost||1;
     }
     step(){
       this.wob+=0.3; const px=this.x,py=this.y;
       this.x+=this.vx+Math.cos(this.wob)*0.4; this.y+=this.vy;
       spawn({x:this.x,y:this.y,px,py,vx:rnd(.2,-.2),vy:rnd(.5,.1),hue:44,sat:90,light:78,
              life:0,max:16,w:1.6,fr:.9,g:0,twk:false,head:true});
-      if (--this.life<=0){ burst(this.x,this.y,this.hue); return false; } return true;
+      if (--this.life<=0){ burst(this.x,this.y,this.hue,this.boost); return false; } return true;
     }
     draw(){ ctx.beginPath(); ctx.arc(this.x,this.y,2,0,TAU);
             ctx.fillStyle=`hsla(${this.hue},90%,82%,.95)`; ctx.fill(); }
@@ -198,12 +232,13 @@
   function flash(x,y,hue,maxr){ flashes.push({x,y,hue,r:4,mr:maxr,a:1}); }
 
   // iMessage 风格密集爆裂：半径 ≈ 近半屏、停留更久
-  function burst(x,y,hue){
+  function burst(x,y,hue,boost){
+    boost = boost||1;
     const roll=Math.random();
     if (roll<0.08){ heartBurst(x,y); return; }
     const willow = roll<0.22;
     const fr = 0.93;                                   // 摩擦更小→扩得更远更慢
-    const R  = Math.min(W,H) * (willow ? rnd(0.36,0.28) : rnd(0.48,0.38)); // 目标半径
+    const R  = Math.min(W,H) * (willow ? rnd(0.36,0.28) : rnd(0.48,0.38)) * boost; // 目标半径（连击放大）
     const v0 = R*(1-fr)/fr;                            // 让外圈粒子恰好到达 R
     flash(x,y,hue, R*0.72);
     const N=200+(Math.random()*100|0);
@@ -377,20 +412,55 @@
     requestAnimationFrame(tick);
   }
 
-  // ====== 手势：轻触 / 双击比心 / 长按 finale ======
-  let lpTimer=null, lastTap=0, lpFired=false;
+  // ====== 计数 / 连击 / 里程碑 ======
+  const cFw=document.getElementById('cFw'), cHt=document.getElementById('cHt');
+  const comboEl=document.getElementById('combo'), toastEl=document.getElementById('toast');
+  let fw=0, ht=0, combo=0, lastFw=0, comboHideTimer=null, toastTimer=null;
+  function bump(el,val){ el.textContent=val; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+  function showCombo(n){ comboEl.textContent='连击 ×'+n+' 🔥'; comboEl.classList.add('show');
+    clearTimeout(comboHideTimer); comboHideTimer=setTimeout(()=>comboEl.classList.remove('show'),1000); }
+  function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2300); }
+  function onFirework(){
+    fw++; bump(cFw,fw);
+    if (fw%12===0){ showToast('已为红豆绽放 '+fw+' 朵烟花 🎉'); setTimeout(()=>textBurst('生日快乐',0.2),220); }
+    else if (fw===5) showToast('多点几下，有惊喜 ✨');
+  }
+  function onHeart(){
+    ht++; bump(cHt,ht);
+    if (ht%6===0){ showToast('收到 '+ht+' 颗爱心 ❤');
+      for(let i=0;i<3;i++) setTimeout(()=>heartBurst(rnd(W*0.68,W*0.32),rnd(H*0.5,H*0.3)),i*220); }
+  }
+
+  // ====== 手势：点夜空放烟花(连点放大) / 点名字比心 / 长按 finale ======
+  const nameEl=document.querySelector('.name');
+  let lpTimer=null, lpFired=false, downName=false;
+  function hitName(x,y){
+    const r=nameEl.getBoundingClientRect();
+    return x>=r.left-12 && x<=r.right+12 && y>=r.top-8 && y<=r.bottom+8;
+  }
   cv.addEventListener('pointerdown', e=>{
     startMusicOnce();
     lpFired=false;
-    const x=e.clientX, y=e.clientY;
-    lpTimer=setTimeout(()=>{ lpFired=true; lpTimer=null; finale(x,y); }, 560);
+    const x=e.clientX, y=e.clientY; downName=hitName(x,y);
+    lpTimer=setTimeout(()=>{ lpFired=true; lpTimer=null;
+      if (downName){ for(let i=0;i<5;i++) setTimeout(()=>{ heartBurst(rnd(W*0.7,W*0.3),rnd(H*0.55,H*0.28)); onHeart(); }, i*180); }
+      else finale(x,y);
+    }, 560);
   }, {passive:true});
   cv.addEventListener('pointerup', e=>{
     if (lpTimer){ clearTimeout(lpTimer); lpTimer=null; }
     if (lpFired) return;                              // 长按已触发，吞掉这次抬手
     const x=e.clientX, y=e.clientY, now=performance.now();
-    if (now-lastTap<330){ heartBurst(x, Math.min(y,H*0.72)); lastTap=0; }   // 双击比心
-    else { if(y<H*0.6) rockets.push(new Rocket(x,y)); else burst(x,y-4,shellHue()); lastTap=now; }
+    if (hitName(x,y)){                                // 点名字「红豆」→ 比心
+      heartBurst(x, y); onHeart(); combo=0;
+    } else {                                          // 点夜空 → 放烟花 + 连点放大
+      combo = (now-lastFw<820) ? combo+1 : 1; lastFw=now;
+      const boost = 1 + Math.min((combo-1)*0.07, 0.6);
+      if (y<H*0.6) rockets.push(new Rocket(x,y,boost)); else burst(x,y-4,shellHue(),boost);
+      onFirework();
+      if (combo>=3) showCombo(combo);
+    }
   }, {passive:true});
   cv.addEventListener('pointercancel', ()=>{ if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} }, {passive:true});
 
@@ -402,8 +472,8 @@
     [F.G4,.75],[F.G4,.25],[F.G5,1],[F.E5,1],[F.C5,1],[F.B4,1],[F.A4,2],
     [F.F5,.75],[F.F5,.25],[F.E5,1],[F.C5,1],[F.D5,1],[F.C5,2]
   ];
-  const BEAT=0.48, VOL=0.42;
-  let actx=null, master=null, started=false, muted=false, loopTimer=null;
+  const BASE_BEAT=0.46, VOL=0.42;
+  let actx=null, master=null, started=false, muted=false, loopTimer=null, loopCount=0;
   function initAudio(){
     if (actx) return true;
     try{ actx=new (window.AudioContext||window.webkitAudioContext)();
@@ -424,17 +494,20 @@
     const g2=actx.createGain(); g2.gain.value=0.22; o2.connect(g2); g2.connect(g); o2.start(start); o2.stop(start+dur+0.02);
   }
   function playHB(){
-    if (!actx || muted || actx.state!=='running') return;   // 必须等上下文真正启动，避免漏音/延迟
-    let t=actx.currentTime+0.06; const t0=t;
+    if (!actx || muted) return;
+    const speed = loopCount===0 ? 1 : rnd(2.4, 0.75);   // 第一遍正常，其后每遍随机变速 0.75x–2.4x
+    loopCount++;
+    const beat = BASE_BEAT/speed;
+    let t=actx.currentTime+0.12; const t0=t;             // lead 0.12s 吸收 resume 延迟
     for (const [f,d] of HB){
-      note(f,t,d*BEAT);
+      note(f,t,d*beat);
       if (d>=1.9){ const delay=(t-actx.currentTime)*1000;     // 乐句收尾放一朵烟花
                    setTimeout(()=>rockets.push(new Rocket()), Math.max(0,delay)); }
-      t+=d*BEAT;
+      t+=d*beat;
     }
     const total=t-t0;
     clearTimeout(loopTimer);
-    loopTimer=setTimeout(()=>{ if(!muted) playHB(); }, (total+0.8)*1000);
+    loopTimer=setTimeout(()=>{ if(!muted) playHB(); }, (total+rnd(0.9,0.4))*1000);
   }
   function resumeThen(cb){
     if (!actx) return;
@@ -444,8 +517,9 @@
   function startMusicOnce(){
     if (started) return; started=true;
     if (!initAudio()) return;
-    muted=false; mbtn.classList.remove('pulse');
-    resumeThen(()=>{ setIcon(); playHB(); });
+    muted=false; mbtn.classList.remove('pulse'); setIcon();
+    try{ actx.resume(); }catch(e){}
+    playHB();                                  // 同步排音，最大化在手势内出声
   }
   const mbtn=document.getElementById('mbtn');
   function setIcon(){ mbtn.textContent = (!started||muted) ? '🔇' : '🎵'; }
@@ -455,10 +529,16 @@
     muted=!muted; master.gain.value=muted?0:VOL; setIcon();
     if (!muted) resumeThen(playHB);
   });
+  // 微信内自动播放：WeixinJSBridgeReady 是微信里唯一可“免点”起音的入口
+  if (window.WeixinJSBridge) startMusicOnce();
+  else document.addEventListener('WeixinJSBridgeReady', startMusicOnce, false);
+  // 其它环境：任何首次交互（点哪都行）立即起音
+  ['pointerdown','touchend','mousedown','click','keydown'].forEach(ev=>
+    window.addEventListener(ev, startMusicOnce, {once:true, capture:true, passive:true}));
 
   // ====== 提示语轮播（悄悄教手势） ======
   const hintEl=document.getElementById('hint');
-  const HINTS=['轻 触 夜 空 · 为 你 绽 放','双 击 · 为 你 比 心 ❤','长 按 · 满 天 花 火 🎆','点 右 上 角 · 听 我 唱 歌 🎵'];
+  const HINTS=['轻 触 夜 空 · 绽 放 烟 花','连 点 越 快 · 烟 花 越 大 🔥','点「红 豆」· 为 她 比 心 ❤','长 按 · 满 天 花 火 🎆','右 上 角 · 听 生 日 歌 🎵'];
   let hi=0;
   setInterval(()=>{
     hintEl.style.opacity='0';
