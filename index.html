@@ -160,7 +160,6 @@
   <div class="bless rise">愿你岁岁常欢愉，年年皆胜意<br>所求皆所愿，所行皆坦途</div>
 </div>
 <canvas id="fg" class="fg"></canvas>
-<div id="mbtn" class="mbtn pulse" aria-label="音乐">🎵</div>
 <div id="score" class="score">🎆 <b id="cFw">0</b>　❤ <b id="cHt">0</b></div>
 <div id="combo" class="combo"></div>
 <div id="toast" class="toast"></div>
@@ -440,7 +439,6 @@
     return x>=r.left-12 && x<=r.right+12 && y>=r.top-8 && y<=r.bottom+8;
   }
   cv.addEventListener('pointerdown', e=>{
-    startMusicOnce();
     lpFired=false;
     const x=e.clientX, y=e.clientY; downName=hitName(x,y);
     lpTimer=setTimeout(()=>{ lpFired=true; lpTimer=null;
@@ -472,7 +470,7 @@
     [F.G4,.75],[F.G4,.25],[F.G5,1],[F.E5,1],[F.C5,1],[F.B4,1],[F.A4,2],
     [F.F5,.75],[F.F5,.25],[F.E5,1],[F.C5,1],[F.D5,1],[F.C5,2]
   ];
-  const BASE_BEAT=0.46, VOL=0.42;
+  const BASE_BEAT=0.46, VOL=0.3;   // 常开背景乐，音量调柔
   let actx=null, master=null, started=false, muted=false, loopTimer=null, loopCount=0;
   function initAudio(){
     if (actx) return true;
@@ -514,27 +512,17 @@
     if (actx.state==='running') cb();
     else actx.resume().then(cb).catch(cb);
   }
-  function startMusicOnce(){
-    if (started) return; started=true;
-    if (!initAudio()) return;
-    muted=false; mbtn.classList.remove('pulse'); setIcon();
-    try{ actx.resume(); }catch(e){}
-    playHB();                                  // 同步排音，最大化在手势内出声
+  // 音乐常开、不可关；首次“抬手/点击”或微信桥就绪即起音
+  // 关键：iOS 只在 touchend/click 才可靠解锁音频，且必须等 resume 完成再排音
+  function startMusic(){
+    if (started || !initAudio()) return;
+    started=true;
+    resumeThen(playHB);
   }
-  const mbtn=document.getElementById('mbtn');
-  function setIcon(){ mbtn.textContent = (!started||muted) ? '🔇' : '🎵'; }
-  mbtn.addEventListener('click', e=>{
-    e.stopPropagation();
-    if (!started){ startMusicOnce(); return; }
-    muted=!muted; master.gain.value=muted?0:VOL; setIcon();
-    if (!muted) resumeThen(playHB);
-  });
-  // 微信内自动播放：WeixinJSBridgeReady 是微信里唯一可“免点”起音的入口
-  if (window.WeixinJSBridge) startMusicOnce();
-  else document.addEventListener('WeixinJSBridgeReady', startMusicOnce, false);
-  // 其它环境：任何首次交互（点哪都行）立即起音
-  ['pointerdown','touchend','mousedown','click','keydown'].forEach(ev=>
-    window.addEventListener(ev, startMusicOnce, {once:true, capture:true, passive:true}));
+  if (window.WeixinJSBridge) startMusic();                 // 微信内：免点自动播放
+  else document.addEventListener('WeixinJSBridgeReady', startMusic, false);
+  ['touchend','click','pointerup'].forEach(ev=>          // 其它环境：首次抬手/点击即起音
+    document.addEventListener(ev, startMusic, {capture:true, passive:true}));
 
   // ====== 提示语轮播（悄悄教手势） ======
   const hintEl=document.getElementById('hint');
