@@ -775,17 +775,36 @@
     const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=freq*2;
     const g2=actx.createGain(); g2.gain.value=0.22; o2.connect(g2); g2.connect(g); o2.start(start); o2.stop(start+dur+0.02);
   }
+  // —— 原创「国风过门」：五声音阶 + 古筝拨弦音色，给生日歌中段加一句古风味（自创旋律，不照搬任何具体歌曲）——
+  const GF=[[F.G5,.4],[F.E5,.5],[F.D5,.5],[F.C5,.5],[F.A4,.6],[F.C5,.5],[F.D5,.5],[F.A4,1.2]];
+  function pluck(freq,start,dur){
+    const g=actx.createGain();
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(0.7,start+0.006);      // 很快起音，像拨弦
+    g.gain.exponentialRampToValueAtTime(0.0006,start+dur);     // 快速衰减
+    g.connect(master);
+    const o=actx.createOscillator(); o.type='triangle'; o.frequency.value=freq; o.connect(g); o.start(start); o.stop(start+dur+0.02);
+    const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=freq*2;   // 高八度泛音 → 筝的明亮
+    const g2=actx.createGain(); g2.gain.value=0.18; o2.connect(g2); g2.connect(g); o2.start(start); o2.stop(start+dur+0.02);
+  }
+  function playGufengBridge(t, beat){
+    t += beat*0.5;                                             // 与生日歌之间留半拍空，凸显"过门"
+    for (const [f,d] of GF){ pluck(f, t, d*beat*1.04); t += d*beat; }
+    return t + beat*0.4;
+  }
   function playHB(){
     if (!actx || muted) return;
     const speed = loopCount===0 ? 1 : rnd(2.4, 0.75);   // 第一遍正常，其后每遍随机变速 0.75x–2.4x
     loopCount++;
     const beat = BASE_BEAT/speed;
     let t=actx.currentTime+0.12; const t0=t;             // lead 0.12s 吸收 resume 延迟
-    for (const [f,d] of HB){
+    for (let i=0;i<HB.length;i++){
+      const [f,d]=HB[i];
       note(f,t,d*beat);
       if (d>=1.9){ const delay=(t-actx.currentTime)*1000;     // 乐句收尾放一朵烟花
                    setTimeout(()=>rockets.push(new Rocket()), Math.max(0,delay)); }
       t+=d*beat;
+      if (i===11) t=playGufengBridge(t, beat);               // 生日歌中段：插一小段原创国风过门
     }
     const total=t-t0;
     clearTimeout(loopTimer);
