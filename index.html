@@ -22,6 +22,14 @@
   }
   body{ background:radial-gradient(140% 100% at 50% 8%, #14121f 0%, #0a0a16 46%, #050509 100%); }
   #sky{ position:fixed; inset:0; display:block; width:100vw; height:100vh; z-index:1; }
+  .fg{ position:fixed; inset:0; display:block; width:100vw; height:100vh; z-index:4; pointer-events:none; }
+  /* 文字背后的柔光+暗角池：把文字“嵌”进场景，制造层次 */
+  .textglow{
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    background:
+      radial-gradient(54% 30% at 50% 45%, rgba(255,206,150,.07), rgba(0,0,0,0) 62%),
+      radial-gradient(74% 50% at 50% 47%, rgba(4,2,8,.42), rgba(4,2,8,0) 72%);
+  }
 
   .grain{
     position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.045; mix-blend-mode:overlay;
@@ -37,7 +45,9 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; pointer-events:none;
     padding:0 28px; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+    animation:floatY 9s ease-in-out 2.4s infinite;   /* 极慢呼吸浮动，不再像死板 PPT */
   }
+  @keyframes floatY{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
   .rise{ opacity:0; transform:translateY(18px); filter:blur(6px);
          animation:rise 1.5s cubic-bezier(.2,.7,.2,1) forwards; }
   @keyframes rise{ to{ opacity:1; transform:none; filter:blur(0); } }
@@ -108,6 +118,7 @@
 <canvas id="sky"></canvas>
 <div class="grain"></div>
 <div class="vignette"></div>
+<div class="textglow"></div>
 
 <div class="stage">
   <div class="eyebrow rise">Happy Birthday</div>
@@ -117,6 +128,7 @@
   <div class="poem rise">红豆生南国，春来发几枝</div>
   <div class="bless rise">愿你岁岁常欢愉，年年皆胜意<br>所求皆所愿，所行皆坦途</div>
 </div>
+<canvas id="fg" class="fg"></canvas>
 <div id="mbtn" class="mbtn pulse" aria-label="音乐">🎵</div>
 <div id="hint" class="hint">轻 触 夜 空 · 为 你 绽 放</div>
 
@@ -124,16 +136,25 @@
 (() => {
   const cv  = document.getElementById('sky');
   const ctx = cv.getContext('2d');
+  const fg  = document.getElementById('fg');
+  const fgx = fg.getContext('2d');
   const TAU = Math.PI * 2;
   const rnd = (a = 1, b = 0) => b + Math.random() * (a - b);
 
-  let W = 0, H = 0, DPR = 1, fadeGrad = null, stars = [];
+  let W = 0, H = 0, DPR = 1, fadeGrad = null, stars = [], embers = [];
 
   function resize(){
     DPR = Math.min(2, window.devicePixelRatio || 1);
     W = window.innerWidth; H = window.innerHeight;
     cv.width = Math.floor(W*DPR); cv.height = Math.floor(H*DPR);
     ctx.setTransform(DPR,0,0,DPR,0,0);
+    fg.width = cv.width; fg.height = cv.height; fgx.setTransform(DPR,0,0,DPR,0,0);
+    const en = Math.max(10, Math.round(W/42));
+    embers = Array.from({length:en}, () => ({
+      x:rnd(W), y:rnd(H), r:rnd(48,16),
+      hue:[45,348,330,280,200][(Math.random()*5)|0]+rnd(12,-12),
+      vx:rnd(0.18,-0.18), vy:rnd(-0.2,-0.6), a:rnd(0.13,0.05), ph:rnd(TAU), tw:rnd(0.55,0.18)
+    }));
     fadeGrad = ctx.createLinearGradient(0,0,0,H);
     fadeGrad.addColorStop(0,'rgba(6,7,20,0.16)');
     fadeGrad.addColorStop(0.6,'rgba(8,7,16,0.16)');
@@ -215,31 +236,32 @@
     }
   }
 
-  // 🎆 文字烟花：像素采样后让火星汇聚成字
+  // 🎆 文字烟花：像素采样→火星汇聚成字，彩虹渐变 + 流光变色 + 长停留
   function textBurst(str, cyFrac){
     const oc=document.createElement('canvas'), o2=oc.getContext('2d');
-    const fs=170;
+    const fs=180;
     o2.font=`700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
     const wpx=Math.ceil(o2.measureText(str).width)+24;
     oc.width=wpx; oc.height=Math.ceil(fs*1.5);
     o2.font=`700 ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
     o2.fillStyle='#fff'; o2.textBaseline='middle'; o2.fillText(str,12,oc.height/2);
     const img=o2.getImageData(0,0,oc.width,oc.height).data;
-    let pts=[]; const step=5;
+    let pts=[]; const step=4;
     for (let y=0;y<oc.height;y+=step) for (let x=0;x<oc.width;x+=step)
       if (img[(y*oc.width+x)*4+3]>128) pts.push([x,y]);
-    // 控制数量
-    const MAXP=360; if (pts.length>MAXP){ const k=pts.length/MAXP, out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
-    const targetW=Math.min(W*0.8,480), sc=targetW/oc.width;
+    const MAXP=460; if (pts.length>MAXP){ const k=pts.length/MAXP, out=[]; for(let i=0;i<MAXP;i++) out.push(pts[(i*k)|0]); pts=out; }
+    const targetW=Math.min(W*0.84,520), sc=targetW/oc.width;
     const ox=W/2-oc.width*sc/2, oy=H*cyFrac-oc.height*sc/2;
     const cx=W/2, cy=H*cyFrac;
-    flash(cx,cy,45,150);
-    const hueBase=[45,350,332][(Math.random()*3)|0];
+    flash(cx,cy,330,180);
     for (const [px,py] of pts){
-      spawn({text:true, x:cx+rnd(50,-50), y:cy+rnd(34,-34), tx:ox+px*sc, ty:oy+py*sc,
-             hue:hueBase+rnd(14,-14), sat:92, light:rnd(82,66), life:0, max:rnd(240,205),
-             w:rnd(2.1,1.3), twk:Math.random()<.35});
+      const hue = 18 + (px/oc.width)*320;                 // 沿字横向铺一条彩虹
+      spawn({text:true, x:cx+rnd(60,-60), y:cy+rnd(40,-40), tx:ox+px*sc, ty:oy+py*sc,
+             hue, light:rnd(72,60), life:0, max:rnd(420,360),  // 停留 ~6–7s
+             w:rnd(2.3,1.4), twk:Math.random()<.5, shim:Math.random()<.7});
     }
+    // 四周点缀小烟花，更热闹
+    for (let i=0;i<4;i++) setTimeout(()=>burst(rnd(W*0.78,W*0.22), H*cyFrac+rnd(70,-30), shellHue()), 300+i*280);
   }
 
   function spawnMeteor(){
@@ -302,15 +324,18 @@
     for (let i=particles.length-1;i>=0;i--){
       const p=particles[i];
 
-      if (p.text){                                   // 文字烟花：缓动汇聚 + 闪烁停留
-        p.x+=(p.tx-p.x)*0.14; p.y+=(p.ty-p.y)*0.14; p.life++;
+      if (p.text){                                   // 文字烟花：缓动汇聚 + 流光变色 + 长停留
+        p.x+=(p.tx-p.x)*0.16; p.y+=(p.ty-p.y)*0.16; p.life++;
         const prog=p.life/p.max; if(prog>=1){ particles.splice(i,1); continue; }
-        let a = prog<0.14 ? prog/0.14 : (prog>0.72 ? (1-prog)/0.28 : 1);
-        if (p.twk) a*=(Math.random()<0.75?1:0.5);
+        let a = prog<0.12 ? prog/0.12 : (prog>0.78 ? (1-prog)/0.22 : 1);
+        if (p.twk) a*=(Math.random()<0.8?1:0.55);
+        const hue = p.shim ? p.hue + Math.sin(p.life*0.05 + p.tx*0.01)*40 : p.hue;  // 流光变色
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.w*2.4,0,TAU);                            // 彩色光晕
+        ctx.fillStyle=`hsla(${hue},100%,60%,${a*0.16})`; ctx.fill();
         ctx.beginPath(); ctx.arc(p.x,p.y,p.w,0,TAU);
-        ctx.fillStyle=`hsla(${p.hue},${p.sat}%,${p.light}%,${a})`; ctx.fill();
+        ctx.fillStyle=`hsla(${hue},95%,${p.light}%,${a})`; ctx.fill();
         ctx.beginPath(); ctx.arc(p.x,p.y,p.w*0.5,0,TAU);
-        ctx.fillStyle=`hsla(${p.hue},80%,96%,${a})`; ctx.fill();
+        ctx.fillStyle=`hsla(${hue},90%,90%,${a})`; ctx.fill();
         continue;
       }
 
@@ -334,6 +359,21 @@
       for (let b=0;b<barrage;b++) setTimeout(()=>rockets.push(new Rocket()), b*240);
       autoTimer=(rnd(105,70))|0;
     }
+
+    // 前景虚化光斑（在文字前面缓缓漂动 → 景深层次）
+    fgx.clearRect(0,0,W,H);
+    fgx.globalCompositeOperation='lighter';
+    for (const e of embers){
+      e.x+=e.vx; e.y+=e.vy;
+      if (e.y<-e.r){ e.y=H+e.r; e.x=rnd(W); }
+      if (e.x<-e.r) e.x=W+e.r; else if (e.x>W+e.r) e.x=-e.r;
+      const a=Math.max(0, e.a*(0.6+0.4*Math.sin(time*e.tw+e.ph)));
+      const g=fgx.createRadialGradient(e.x,e.y,0,e.x,e.y,e.r);
+      g.addColorStop(0,`hsla(${e.hue},90%,70%,${a})`);
+      g.addColorStop(1,`hsla(${e.hue},90%,60%,0)`);
+      fgx.fillStyle=g; fgx.beginPath(); fgx.arc(e.x,e.y,e.r,0,TAU); fgx.fill();
+    }
+
     requestAnimationFrame(tick);
   }
 
@@ -368,6 +408,9 @@
     if (actx) return true;
     try{ actx=new (window.AudioContext||window.webkitAudioContext)();
          master=actx.createGain(); master.gain.value=VOL; master.connect(actx.destination);
+         // iOS 解锁：在手势内播放 1 帧静音
+         const b=actx.createBuffer(1,1,22050), s=actx.createBufferSource();
+         s.buffer=b; s.connect(actx.destination); s.start(0);
          return true; }catch(e){ return false; }
   }
   function note(freq,start,dur){
@@ -381,8 +424,7 @@
     const g2=actx.createGain(); g2.gain.value=0.22; o2.connect(g2); g2.connect(g); o2.start(start); o2.stop(start+dur+0.02);
   }
   function playHB(){
-    if (!actx || muted) return;
-    if (actx.state==='suspended') actx.resume();
+    if (!actx || muted || actx.state!=='running') return;   // 必须等上下文真正启动，避免漏音/延迟
     let t=actx.currentTime+0.06; const t0=t;
     for (const [f,d] of HB){
       note(f,t,d*BEAT);
@@ -394,19 +436,24 @@
     clearTimeout(loopTimer);
     loopTimer=setTimeout(()=>{ if(!muted) playHB(); }, (total+0.8)*1000);
   }
+  function resumeThen(cb){
+    if (!actx) return;
+    if (actx.state==='running') cb();
+    else actx.resume().then(cb).catch(cb);
+  }
   function startMusicOnce(){
     if (started) return; started=true;
-    if (initAudio()){ muted=false; setIcon(); playHB(); }
-    mbtn.classList.remove('pulse');
+    if (!initAudio()) return;
+    muted=false; mbtn.classList.remove('pulse');
+    resumeThen(()=>{ setIcon(); playHB(); });
   }
   const mbtn=document.getElementById('mbtn');
   function setIcon(){ mbtn.textContent = (!started||muted) ? '🔇' : '🎵'; }
   mbtn.addEventListener('click', e=>{
     e.stopPropagation();
     if (!started){ startMusicOnce(); return; }
-    muted=!muted; master.gain.value=muted?0:VOL;
-    if (!muted) playHB();
-    setIcon();
+    muted=!muted; master.gain.value=muted?0:VOL; setIcon();
+    if (!muted) resumeThen(playHB);
   });
 
   // ====== 提示语轮播（悄悄教手势） ======
@@ -423,6 +470,7 @@
   window.addEventListener('resize', resize);
   [380,760,1180,1620,2200].forEach(t=>setTimeout(()=>rockets.push(new Rocket(rnd(W*0.72,W*0.28), rnd(H*0.4,H*0.18))), t));
   setTimeout(()=>textBurst('生日快乐',0.19), 5200);    // 开场惊喜：天上写字
+  setInterval(()=>textBurst('生日快乐',0.19), 42000);  // 每隔约 42s 再现一次
   requestAnimationFrame(tick);
 })();
 </script>
