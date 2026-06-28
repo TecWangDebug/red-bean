@@ -775,8 +775,12 @@
     const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=freq*2;
     const g2=actx.createGain(); g2.gain.value=0.22; o2.connect(g2); g2.connect(g); o2.start(start); o2.stop(start+dur+0.02);
   }
-  // —— 原创「国风过门」：五声音阶 + 古筝拨弦音色，给生日歌中段加一句古风味（自创旋律，不照搬任何具体歌曲）——
-  const GF=[[F.G5,.4],[F.E5,.5],[F.D5,.5],[F.C5,.5],[F.A4,.6],[F.C5,.5],[F.D5,.5],[F.A4,1.2]];
+  // —— 原创「国风过门」：羽调五声音阶 + 古筝拨弦音色，给生日歌中段加一段古风乐句（自创旋律，不照搬任何具体歌曲）——
+  // 两句一问一答、落在羽音(la)收束，古韵悠扬；比原来长一倍多
+  const GF=[
+    [F.A4,.5],[F.C5,.5],[F.D5,.75],[F.E5,.5],[F.D5,.5],[F.C5,.75],[F.A4,.6],      // 上句
+    [F.E5,.5],[F.G5,.75],[F.E5,.5],[F.D5,.5],[F.C5,.5],[F.A4,.5],[F.C5,.75],[F.A4,1.4] // 下句·收束
+  ];
   function pluck(freq,start,dur){
     const g=actx.createGain();
     g.gain.setValueAtTime(0.0001,start);
