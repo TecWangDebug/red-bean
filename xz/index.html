@@ -169,6 +169,10 @@
   body.party .stage{ opacity:.2; }
   body.party .textglow{ opacity:.35; }
   body.party .vignette{ opacity:.28; }
+  /* 应援解锁：聚焦主体——文字层几乎隐去、暗角加重，背景烟花另由 bgDim 压暗 */
+  body.xzfocus .stage{ opacity:.04; }
+  body.xzfocus .textglow{ opacity:.1; }
+  body.xzfocus .vignette{ opacity:.72; }
 
   /* —— 等级 + 经验条 ——（注意：不要写 position:relative，会覆盖原 fixed 让计数器跑到左上角被切；
      fixed 本身已是 xpfill 的定位上下文）*/
@@ -185,7 +189,7 @@
                  text-shadow:0 0 10px rgba(255,200,90,.85); }
   .score .gdtag b{ color:#fff3c4; }
   body.xz .score{ border-color:rgba(255,205,110,.55); box-shadow:0 0 18px rgba(255,180,80,.4); }
-  .xzbanner{ position:fixed; left:50%; top:40%; z-index:7; width:90vw; text-align:center;
+  .xzbanner{ position:fixed; left:50%; top:57%; z-index:7; width:90vw; text-align:center;
              pointer-events:none; opacity:0; transform:translate(-50%,-50%) scale(.9);
              font-family:"PingFang SC","Microsoft YaHei",sans-serif;
              transition:opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1); }
@@ -368,7 +372,7 @@
                        : Math.min(H*0.2/oc.height, W*0.88/oc.width)*scaleMul;
     const ox=cx-oc.width*sc/2, oy=cy-oc.height*sc/2;
     const br=v=>Math.min(255,Math.round(v*1.12+20));   // 更接近真实色，蛋糕/独角兽等更易认
-    if (!mini) party(2400);
+    if (!mini && !opt.noparty) party(2400);
     flash(cx,cy,colored?45:330, mini?100:180);
     for (const [px,py,r,g,bl] of pts){
       const o={ text:true, x:cx+rnd(44,-44), y:cy+rnd(30,-30), tx:ox+px*sc, ty:oy+py*sc,
@@ -378,7 +382,7 @@
       particles.push(o);   // 直接入池、绕过 MAX 上限：连击/狂欢粒子打满时，造型也不会缺粒子残缺
     }
     // 形状下方点缀两朵小烟花助兴（不盖住形状）
-    if (!mini) for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), cy+rnd(170,110), shellHue()), 700+i*320);
+    if (!mini && !opt.noparty) for (let i=0;i<2;i++) setTimeout(()=>burst(rnd(W*0.72,W*0.28), cy+rnd(170,110), shellHue()), 700+i*320);
   }
   function textBurst(str, cyFrac){ glyphBurst(str, {cyFrac:cyFrac}); }
 
@@ -557,6 +561,7 @@
     66  :{text:'顺',  msg:'66 · 顺顺利利'},
     88  :{emoji:'💰', msg:'88 · 恭喜发财 💰'},
     100 :{emoji:'🎂', msg:'100 朵 · 生日蛋糕来啦 🎂', grand:true},
+    105 :{text:'1005', msg:'105 朵 · 战哥生日 10·05 🎂 也分你一点光', grand:true},   // 暗号：他生日
     150 :{emoji:'🌟', msg:'150 朵 · 闪耀全场 🌟'},
     200 :{emoji:'🎊', msg:'200 朵 · 派对开始 🎊'},
     300 :{text:'红豆', msg:'300 朵 · 把名字写满天空'},
@@ -567,7 +572,6 @@
     888 :{emoji:'👑', msg:'888 · 今天你最大 👑'},
     999 :{text:'长长久久', msg:'999 · 长长久久'},
     1000:{text:'心想事成', msg:'1000 朵 · 心想事成 🌟', grand:true},
-    1005:{text:'1005', msg:'1005 · 10·05 战哥生日 🎂 也分你一点光', grand:true},
     1314:{text:'一生一世', msg:'1314 · 一生一世 ❤', grand:true},
     2000:{emoji:'🌈', msg:'2000 · 彩虹都来啦 🌈', grand:true},
     3000:{emoji:'🦄', msg:'3000 · 封你为烟花大师 🦄', grand:true},
@@ -671,14 +675,17 @@
     else if (n>=9 && !xzUnlocked) unlockXz();
     else            showToast('✦ 光点 ×'+n);
   }
+  function xzFocusOn(){  document.body.classList.add('xzfocus'); bgDimTarget=0.14; }   // 背景烟花压到很暗
+  function xzFocusOff(){ document.body.classList.remove('xzfocus'); bgDimTarget=1; }
   function unlockXz(){
     xzUnlocked=true; document.body.classList.add('xz'); buzz([0,50,30,50,30,90]);
-    showToast('✦ 应援解锁 · 小飞侠，集合！');
-    glyphBurst('战',{cyFrac:0.22, scale:1.25});
-    setTimeout(()=>grandBarrage(8), 700);
-    setTimeout(()=>showXzBanner(), 950);
-    setTimeout(()=>glyphBurst('生日快乐',{cyFrac:0.5}), 1500);
-    setTimeout(()=>{ for(let i=0;i<5;i++) setTimeout(()=>heartBurst(rnd(W*0.8,W*0.2),rnd(H*0.52,H*0.3)), i*200); }, 1700);
+    showToast('✦ 应援解锁');
+    xzFocusOn();                                          // 压暗背景 + 几乎隐去红豆/诗句/生日快乐等文字，突出主体
+    glyphBurst('战',{cyFrac:0.30, scale:1.4, noparty:true});   // 「战」居中独占舞台（不另放陪衬烟花）
+    setTimeout(()=>showXzBanner(), 1100);                 // 成形后，其下方再出应援横幅
+    setTimeout(()=>{ for(let i=0;i<3;i++) setTimeout(()=>heartBurst(rnd(W*0.7,W*0.3),rnd(H*0.66,H*0.5)), i*240); }, 1500); // 少量爱心点缀
+    setTimeout(()=>grandBarrage(3), 2700);                // 收尾象征性几朵（此时背景已暗、不抢戏）
+    setTimeout(xzFocusOff, 5600);
   }
   function showXzBanner(){
     xzbanner.innerHTML='<div class="big"><span class="spark">✦</span> 小飞侠红豆，生日快乐 <span class="spark">✦</span></div>'
